@@ -1,4 +1,28 @@
 # kbot
+###  Що нового у v1.0.3
+
+У цьому релізі підготовлений **kbot** до продакшн-розгортання:
+
+- **Оновлений Dockerfile**: версія застосунку (`v1.0.3`) тепер передається через `build-arg` (`APP_VERSION`), що гарантує правильний друк версії в контейнері.
+- **Multi-arch (amd64 + arm64)** білд та публікація для `v1.0.3`, Helm-чарт посилається на manifest list.
+- **Оновлений Helm-чарт** (`version 0.1.1`, `appVersion "v1.0.3"`):
+  - Параметр `args`: запуск Cobra-підкоманди (`["kbot","kbot"]`).
+  - Змінна `TELE_TOKEN` безпечно підтягується з Kubernetes Secret.
+  - Опційний параметр архітектури (`arch`) для multi-arch (за замовчуванням вимкнено).
+  - Проби (healthchecks) вимкнені за замовчуванням для швидшого розгортання, їх можна вмикати після додавання health endpoint.
+- **GitHub Release**: створено реліз `v1.0.3` з Helm-пакетом:
+
+###  Інсталяція (v1.0.3)
+```bash
+kubectl create namespace demo || true
+kubectl -n demo create secret generic kbot --from-literal=token='<ВАШ_СПРАВЖНІЙ_ТОКЕН>'
+
+helm upgrade --install kbot \
+https://github.com/mexxo-dvp/kbot/releases/download/v1.0.3/kbot-0.1.1.tgz \
+-n demo \
+--set image.repository=quay.io/paranoidlookup \
+--set image.tag=v1.0.3
+```
 
 ### devops application from scatch
 ### kbot v1.0.2
