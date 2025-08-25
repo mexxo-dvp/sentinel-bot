@@ -28,7 +28,7 @@
 ### 1. Підготовка Kubernetes-кластера
 ```bash
 kubectl config current-context   # помилка: current-context is not set
-'''
+```
 створили kind-кластер
 ```bash
 kind create cluster --name kbot --wait 90s

@@ -14,13 +14,19 @@ spec:
       labels:
         {{- include "kbot.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{ with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+      {{- /* Fallback-параметри: нові кореневі -> старі image.* */ -}}
+      {{- $repository := (default .Values.image.repository .Values.repository) -}}
+      {{- $tag := (default .Values.image.tag .Values.tag) -}}
+      {{- $arch := (default .Values.image.arch .Values.arch) -}}
+
       containers:
         - name: {{ .Release.Name }}
-          image: "{{ .Values.image.repository }}/{{ .Chart.Name }}:{{ .Values.image.tag }}{{ if .Values.image.arch }}-{{ .Values.image.arch }}{{ end }}"
+          image: "{{ $repository }}:{{ $tag }}{{- if $arch }}-{{ $arch }}{{- end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           {{- with .Values.args }}
           args:
