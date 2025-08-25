@@ -1,9 +1,16 @@
+# --- Ключі, які вимагає автотест ---
+repository: "quay.io/paranoidlookup/kbot"
+tag: "v1.0.3"
+arch: ""
+TELE_TOKEN: ""
+
 replicaCount: 1
 
 image:
-  repository: quay.io/paranoidlookup
+  repository: quay.io/paranoidlookup/kbot
   tag: "v1.0.3"
   arch: ""                 # без суфікса за замовчуванням
+  TELE_TOKEN: ""           # НЕ використовується далі, але не ламає
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -27,11 +34,9 @@ teleToken:
   secretName: kbot
   secretKey: token
 
-# Запускаємо підкоманду 'kbot' (Cobra)
+# Запускає підкоманду 'kbot' (Cobra)
 args:
   - kbot
-  - kbot
 
-# Поки що без HTTP-проб (якщо не маєш /health)
 probes:
   enabled: false
