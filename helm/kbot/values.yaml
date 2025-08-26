@@ -1,6 +1,6 @@
 # --- Ключі, які вимагає автотест ---
 repository: "ghcr.io/mexxo-dvp/kbot"
-tag: "v1.0.3-d31187d"
+tag: "v1.0.3-72b2fe6"
 os: "linux"
 arch: "amd64"
 TELE_TOKEN: ""
@@ -8,7 +8,7 @@ replicaCount: 1
 # --- Основна конфігурація образу ---
 image:
   repository: "ghcr.io/mexxo-dvp/kbot"
-  tag: "v1.0.3-d31187d"
+  tag: "v1.0.3-72b2fe6"
   os: "linux"
   arch: "amd64"
   TELE_TOKEN: ""
