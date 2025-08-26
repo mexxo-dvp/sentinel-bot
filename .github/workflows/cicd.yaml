@@ -53,8 +53,9 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}   # vX.Y.Z-<sha>-linux-amd64
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}        # vX.Y.Z-<sha>
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}-amd64  # vX.Y.Z-<sha>-amd64
             ${{ env.IMAGE }}:develop
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
