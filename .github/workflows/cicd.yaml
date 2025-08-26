@@ -1,0 +1,83 @@
+name: kbot CI/CD
+
+on:
+  push:
+    branches: [ "develop" ]
+    paths-ignore:
+      - 'helm/kbot/values.yaml'
+      - 'helm/kbot/Chart.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+  IMAGE: ghcr.io/${{ github.repository_owner }}/kbot
+  OS: linux
+  ARCH: amd64
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short=7 $GITHUB_SHA)" >> $GITHUB_OUTPUT
+          base_tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)
+          echo "base_tag=$base_tag" >> $GITHUB_OUTPUT
+          echo "tag=${base_tag}-${{ steps.vars.outputs.sha_short }}" >> $GITHUB_OUTPUT
+          echo "full_tag=${base_tag}-${{ steps.vars.outputs.sha_short }}-${{ env.OS }}-${{ env.ARCH }}" >> $GITHUB_OUTPUT
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE }}:develop
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.vars.outputs.tag }}
+
+      - name: Install yq
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Bump Helm values & Chart appVersion
+        run: |
+          yq -i ".image.registry = \"${{ env.REGISTRY }}\"" helm/kbot/values.yaml
+          yq -i ".image.repository = \"${{ env.OWNER }}/kbot\"" helm/kbot/values.yaml
+          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\"" helm/kbot/values.yaml
+          yq -i ".image.os = \"${{ env.OS }}\"" helm/kbot/values.yaml
+          yq -i ".image.arch = \"${{ env.ARCH }}\"" helm/kbot/values.yaml
+          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\"" helm/kbot/Chart.yaml
+          git add helm/kbot/values.yaml helm/kbot/Chart.yaml
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
+              commit -m "ci(helm): bump image to ${{ steps.vars.outputs.full_tag }} (appVersion=${{ steps.vars.outputs.base_tag }})"
+            git push origin HEAD:develop
+          else
+            echo "No chart changes."
+          fi
