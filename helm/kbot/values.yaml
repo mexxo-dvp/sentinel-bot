@@ -1,42 +1,35 @@
 # --- Ключі, які вимагає автотест ---
-repository: "quay.io/paranoidlookup/kbot"
-tag: "v1.0.3"
-arch: ""
+repository: "ghcr.io/mexxo-dvp/kbot"
+tag: "v1.0.3-4227158"
+arch: "amd64"
 TELE_TOKEN: ""
-
 replicaCount: 1
-
 image:
-  repository: quay.io/paranoidlookup/kbot
-  tag: "v1.0.3"
-  arch: ""                 # без суфікса за замовчуванням
-  TELE_TOKEN: ""           # НЕ використовується далі, але не ламає
+  repository: ghcr.io/mexxo-dvp/kbot
+  tag: "v1.0.3-4227158"
+  arch: "amd64" # без суфікса за замовчуванням
+  TELE_TOKEN: "" # НЕ використовується далі, але не ламає
   pullPolicy: IfNotPresent
-
+  os: linux
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
-
 service:
   enabled: false
   type: ClusterIP
   port: 8080
-
 ingress:
   enabled: false
-
 resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
-
 teleToken:
   secretName: kbot
   secretKey: token
-
 # Запускає підкоманду 'kbot' (Cobra)
 args:
   - kbot
-
 probes:
   enabled: false
+os: linux
