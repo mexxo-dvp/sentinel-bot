@@ -19,8 +19,8 @@ BASE_TAG ?= $(shell git describe --tags --abbrev=0 --match 'v*' 2>/dev/null)
 ifeq ($(strip $(BASE_TAG)),)
 BASE_TAG := v1.0.0
 endif
-TAG := $(BASE_TAG)-$(GIT_SHA)            # e.g. v1.0.0-106879e
-FULL_TAG := $(TAG)-$(OS)-$(ARCH)         # e.g. v1.0.0-106879e-linux-amd64
+TAG := $(BASE_TAG)-$(GIT_SHA)
+FULL_TAG := $(TAG)-$(OS)-$(ARCH)
 
 # ---- Build flags ----
 LD_FLAGS := -X github.com/mexxo-dvp/kbot/cmd.appVersion=$(BASE_TAG)
