@@ -53,9 +53,9 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}   # vX.Y.Z-<sha>-linux-amd64
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}        # vX.Y.Z-<sha>
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}-amd64  # vX.Y.Z-<sha>-amd64
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}-amd64
             ${{ env.IMAGE }}:develop
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
@@ -64,51 +64,35 @@ jobs:
 
       - name: Install yq
         run: |
-          sudo curl -fsSL -o /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo curl -fsSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
       - name: Bump Helm values & Chart appVersion (sync image.* and top-level keys)
         run: |
           set -euo pipefail
-
-          # image.* (для реального деплою)
           yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/kbot\"" helm/kbot/values.yaml
           yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""        helm/kbot/values.yaml
           yq -i ".image.os = \"${{ env.OS }}\""                         helm/kbot/values.yaml
           yq -i ".image.arch = \"${{ env.ARCH }}\""                     helm/kbot/values.yaml
-
-          # top-level (для автотесту)
           yq -i ".repository = \"ghcr.io/${{ env.OWNER }}/kbot\""       helm/kbot/values.yaml
           yq -i ".tag = \"${{ steps.vars.outputs.tag }}\""              helm/kbot/values.yaml
           yq -i ".os = \"${{ env.OS }}\""                               helm/kbot/values.yaml
           yq -i ".arch = \"${{ env.ARCH }}\""                           helm/kbot/values.yaml
-
-          # Chart appVersion
           yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""  helm/kbot/Chart.yaml
-
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add helm/kbot/values.yaml helm/kbot/Chart.yaml
           if git diff --cached --quiet; then
             echo "No chart changes."
             exit 0
           fi
-
           git commit -m "ci(helm): ghcr repo + tag=${{ steps.vars.outputs.tag }} os=${{ env.OS }} arch=${{ env.ARCH }} appVersion=${{ steps.vars.outputs.base_tag }}"
-
-          # --- ключ: акуратний pull --rebase + retry, потім push ---
           n=0
           until [ $n -ge 3 ]; do
             if git pull --rebase origin develop; then
               break
             fi
-            echo "Rebase failed, aborting and retrying... ($((n+1))/3)"
-            git rebase --abort || true
-            n=$((n+1))
-            sleep 2
+            echo "Rebase failed, retry $((n+1))/3"; git rebase --abort || true; n=$((n+1)); sleep 2
           done
-
           git push origin HEAD:develop
