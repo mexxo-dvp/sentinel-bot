@@ -1,11 +1,11 @@
-# --- Ключі, які вимагає автотест ---
+# --- Keys required by autotest ---
 repository: "ghcr.io/mexxo-dvp/kbot"
 tag: "v1.0.3-9c4bb07"
 os: "linux"
 arch: "amd64"
 TELE_TOKEN: ""
 replicaCount: 1
-# --- Основна конфігурація образу ---
+# --- Main image configuration ---
 image:
   repository: "ghcr.io/mexxo-dvp/kbot"
   tag: "v1.0.3-9c4bb07"
@@ -13,7 +13,7 @@ image:
   arch: "amd64"
   TELE_TOKEN: ""
   pullPolicy: IfNotPresent
-# --- Стандартні поля Helm-чарту ---
+# --- Standard Helm chart fields ---
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
@@ -27,11 +27,11 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
-# --- Телеграм-токен (секрет у ns: demo) ---
+# --- Telegram token (secret in ns: demo) ---
 teleToken:
   secretName: kbot
   secretKey: token
-# Запускає підкоманду 'kbot' (Cobra)
+# Runs subcommand 'kbot' (Cobra)
 args:
   - kbot
 probes:
