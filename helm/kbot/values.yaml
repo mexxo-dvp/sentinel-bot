@@ -1,12 +1,12 @@
 # --- Ключі, які вимагає автотест ---
 repository: "ghcr.io/mexxo-dvp/kbot"
-tag: "v1.0.3-4227158"
+tag: "v1.0.3-a4921f4"
 arch: "amd64"
 TELE_TOKEN: ""
 replicaCount: 1
 image:
   repository: ghcr.io/mexxo-dvp/kbot
-  tag: "v1.0.3-4227158"
+  tag: "v1.0.3-a4921f4"
   arch: "amd64" # без суфікса за замовчуванням
   TELE_TOKEN: "" # НЕ використовується далі, але не ламає
   pullPolicy: IfNotPresent
