@@ -30,11 +30,12 @@ jobs:
       - name: Derive version variables
         id: vars
         run: |
-          echo "sha_short=$(git rev-parse --short=7 $GITHUB_SHA)" >> $GITHUB_OUTPUT
-          base_tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)
-          echo "base_tag=$base_tag" >> $GITHUB_OUTPUT
-          echo "tag=${base_tag}-${{ steps.vars.outputs.sha_short }}" >> $GITHUB_OUTPUT
-          echo "full_tag=${base_tag}-${{ steps.vars.outputs.sha_short }}-${{ env.OS }}-${{ env.ARCH }}" >> $GITHUB_OUTPUT
+          sha_short="$(git rev-parse --short=7 "$GITHUB_SHA")"
+          base_tag="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)"
+          echo "sha_short=${sha_short}" >> "$GITHUB_OUTPUT"
+          echo "base_tag=${base_tag}"   >> "$GITHUB_OUTPUT"
+          echo "tag=${base_tag}-${sha_short}" >> "$GITHUB_OUTPUT"
+          echo "full_tag=${base_tag}-${sha_short}-${{ env.OS }}-${{ env.ARCH }}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
@@ -52,8 +53,8 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}   # vX.Y.Z-<sha>-linux-amd64
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}        # vX.Y.Z-<sha>
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
             ${{ env.IMAGE }}:develop
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
@@ -67,7 +68,7 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
-      - name: Bump Helm values & Chart appVersion (sync both image.* and top-level keys)
+      - name: Bump Helm values & Chart appVersion (sync image.* and top-level keys)
         run: |
           # image.* (для реального деплою)
           yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/kbot\"" helm/kbot/values.yaml
