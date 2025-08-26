@@ -1,47 +1,38 @@
 # --- Ключі, які вимагає автотест ---
 repository: "ghcr.io/mexxo-dvp/kbot"
-tag: "v1.0.3-4227158"
+tag: "v1.0.3-d31187d"
 os: "linux"
 arch: "amd64"
 TELE_TOKEN: ""
 replicaCount: 1
-
 # --- Основна конфігурація образу ---
 image:
   repository: "ghcr.io/mexxo-dvp/kbot"
-  tag: "v1.0.3-4227158"
+  tag: "v1.0.3-d31187d"
   os: "linux"
   arch: "amd64"
   TELE_TOKEN: ""
   pullPolicy: IfNotPresent
-
 # --- Стандартні поля Helm-чарту ---
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
-
 service:
   enabled: false
   type: ClusterIP
   port: 8080
-
 ingress:
   enabled: false
-
 resources: {}
-
 nodeSelector: {}
 tolerations: []
 affinity: {}
-
 # --- Телеграм-токен (секрет у ns: demo) ---
 teleToken:
   secretName: kbot
   secretKey: token
-
 # Запускає підкоманду 'kbot' (Cobra)
 args:
   - kbot
-
 probes:
   enabled: false
