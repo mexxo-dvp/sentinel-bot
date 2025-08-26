@@ -26,7 +26,7 @@ spec:
 
       containers:
         - name: {{ .Release.Name }}
-          image: "{{ $repository }}:{{ $tag }}{{- if $arch }}-{{ $arch }}{{- end }}"
+          image: "{{ $repository }}:{{ $tag }}{{- if .Values.image.os }}-{{ .Values.image.os }}{{- end }}{{- if $arch }}-{{ $arch }}{{- end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           {{- with .Values.args }}
           args:
