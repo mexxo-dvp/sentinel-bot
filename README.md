@@ -62,7 +62,7 @@ kubectl -n demo create secret generic kbot --from-literal=token='<YOUR_TELE_TOKE
 ```
 Helm-чарт очікує Secret із ключем token у namespace demo.
 
-### 4. ArgoCD Application
+### 5. ArgoCD Application
 
 infra/argocd-app-kbot.yaml:
 ```yaml
@@ -91,7 +91,7 @@ kubectl apply -f infra/argocd-app-kbot.yaml
 kubectl -n argocd get app kbot
 ```
 
-### 5. GitHub Actions Workflow
+### 6. GitHub Actions Workflow
 
 .github/workflows/cicd.yaml:
 
@@ -211,7 +211,7 @@ jobs:
           done
           git push origin HEAD:develop
 ```
-### 6. Makefile (локальна збірка + образ)
+### 7. Makefile (локальна збірка + образ)
 ```makefile
 # =========================
 # kbot — unified Makefile
@@ -348,7 +348,7 @@ clean:
 	-docker rmi $(IMAGE):local 2>/dev/null || true
 ```
 
-### 7. Helm Chart
+### 8. Helm Chart
 
 helm/kbot/values.yaml (фінальний вигляд для CI/CD):
 
@@ -469,7 +469,7 @@ spec:
       {{- end }}
 ```
 
-### 8. helm/kbot/templates/secret.yaml
+### 9. helm/kbot/templates/secret.yaml
 
 Секрет ми створюємо через kubectl (одноразово). Цей шаблон не створює секрет, але залишений як опція, якщо захочеш керувати ним через Helm (зверни увагу на безпеку).
 ```yaml
@@ -719,24 +719,74 @@ markdown
 
 ### Структура проекту
 ```text
+.
 ├── Dockerfile
-├── LICENSE 
+├── LICENSE
 ├── Makefile
-├── README.md 
-├── cmd 
-│  ├── kbot.go 
-│  ├── root.go 
-│  └── version.go 
-├── go.mod 
-├── go.sum 
-├── kbot 
+├── README.md
+├── RELEASE.md
+├── cmd
+│   ├── kbot.go
+│   ├── root.go
+│   └── version.go
+├── go.mod
+├── go.sum
+├── helm
+│   └── kbot
+│       ├── Chart.yaml
+│       ├── templates
+│       │   ├── NOTES.txt
+│       │   ├── _helpers.tpl
+│       │   ├── deployment.yaml
+│       │   ├── secret.yaml
+│       │   └── service.yaml
+│       └── values.yaml
+├── infra
+│   └── argocd-app-kbot.yaml
+├── kbot
 └── main.go
 ```
-main.go — точка входу, викликає CLI через cobra
-cmd/ — основна логіка CLI (запуск, version, root-команда)
-Makefile — автоматизація збірки
-Dockerfile — контейнеризація для production
-go.mod — залежності
+### Опис структури проєкту
+
+main.go — точка входу в застосунок, викликає CLI через Cobra.
+
+cmd/ — директорія з основною логікою CLI:
+
+kbot.go — стартова команда (логіка запуску бота).
+
+root.go — базова root-команда CLI.
+
+version.go — команда для виводу версії.
+
+Makefile — автоматизація збірки, тестів і публікації Docker-образів.
+
+Dockerfile — опис контейнеризації для production.
+
+go.mod / go.sum — файли для керування залежностями Go.
+
+LICENSE — ліцензія проєкту.
+
+README.md — основна документація.
+
+RELEASE.md — нотатки до релізів (changelog).
+
+helm/kbot/ — Helm-чарт для деплою в Kubernetes:
+
+Chart.yaml — метадані чарту.
+
+values.yaml — дефолтні значення параметрів.
+
+templates/ — шаблони Kubernetes-ресурсів (Deployment, Service, Secret).
+
+NOTES.txt — підказки для користувача після встановлення.
+
+_helpers.tpl — хелпери для шаблонів.
+
+infra/ — інфраструктурні маніфести:
+
+argocd-app-kbot.yaml — декларація застосунку для ArgoCD.
+
+kbot/ — службова директорія (може містити артефакти, дані або тимчасові файли).
 
 # changelog
 

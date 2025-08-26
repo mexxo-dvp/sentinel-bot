@@ -9,7 +9,7 @@
 kubectl create namespace demo || true
 kubectl -n demo create secret generic kbot --from-literal=token='<YOUR_TELE_TOKEN>'
 
-helm install kbot https://github.com/mexxo-dvp/kbot/releases/download/v1.0.3/kbot-0.1.1.tgz \
+helm install kbot https://github.com/mexxo-dvp/kbot/releases/download/v1.0.3/kbot-0.1.2.tgz \
   -n demo \
   --set image.repository=quay.io/paranoidlookup \
   --set image.tag=v1.0.3
