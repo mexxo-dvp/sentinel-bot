@@ -70,6 +70,8 @@ jobs:
 
       - name: Bump Helm values & Chart appVersion (sync image.* and top-level keys)
         run: |
+          set -euo pipefail
+
           # image.* (для реального деплою)
           yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/kbot\"" helm/kbot/values.yaml
           yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""        helm/kbot/values.yaml
@@ -85,11 +87,27 @@ jobs:
           # Chart appVersion
           yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""  helm/kbot/Chart.yaml
 
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
           git add helm/kbot/values.yaml helm/kbot/Chart.yaml
-          if ! git diff --cached --quiet; then
-            git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
-              commit -m "ci(helm): ghcr repo + tag=${{ steps.vars.outputs.tag }} os=${{ env.OS }} arch=${{ env.ARCH }} appVersion=${{ steps.vars.outputs.base_tag }}"
-            git push origin HEAD:develop
-          else
+          if git diff --cached --quiet; then
             echo "No chart changes."
+            exit 0
           fi
+
+          git commit -m "ci(helm): ghcr repo + tag=${{ steps.vars.outputs.tag }} os=${{ env.OS }} arch=${{ env.ARCH }} appVersion=${{ steps.vars.outputs.base_tag }}"
+
+          # --- ключ: акуратний pull --rebase + retry, потім push ---
+          n=0
+          until [ $n -ge 3 ]; do
+            if git pull --rebase origin develop; then
+              break
+            fi
+            echo "Rebase failed, aborting and retrying... ($((n+1))/3)"
+            git rebase --abort || true
+            n=$((n+1))
+            sleep 2
+          done
+
+          git push origin HEAD:develop
