@@ -13,7 +13,6 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
   IMAGE: ghcr.io/${{ github.repository_owner }}/kbot
   OS: linux
@@ -23,11 +22,13 @@ jobs:
   build-push-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (with tags history)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - id: vars
+      - name: Derive version variables
+        id: vars
         run: |
           echo "sha_short=$(git rev-parse --short=7 $GITHUB_SHA)" >> $GITHUB_OUTPUT
           base_tag=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)
@@ -51,8 +52,8 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}
-            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}   # vX.Y.Z-<sha>-linux-amd64
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}        # vX.Y.Z-<sha>
             ${{ env.IMAGE }}:develop
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
@@ -64,19 +65,29 @@ jobs:
           sudo curl -fsSL -o /usr/local/bin/yq \
             https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
+          yq --version
 
-      - name: Bump Helm values & Chart appVersion
+      - name: Bump Helm values & Chart appVersion (sync both image.* and top-level keys)
         run: |
-          yq -i ".image.registry = \"${{ env.REGISTRY }}\"" helm/kbot/values.yaml
-          yq -i ".image.repository = \"${{ env.OWNER }}/kbot\"" helm/kbot/values.yaml
-          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\"" helm/kbot/values.yaml
-          yq -i ".image.os = \"${{ env.OS }}\"" helm/kbot/values.yaml
-          yq -i ".image.arch = \"${{ env.ARCH }}\"" helm/kbot/values.yaml
-          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\"" helm/kbot/Chart.yaml
+          # image.* (для реального деплою)
+          yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/kbot\"" helm/kbot/values.yaml
+          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""        helm/kbot/values.yaml
+          yq -i ".image.os = \"${{ env.OS }}\""                         helm/kbot/values.yaml
+          yq -i ".image.arch = \"${{ env.ARCH }}\""                     helm/kbot/values.yaml
+
+          # top-level (для автотесту)
+          yq -i ".repository = \"ghcr.io/${{ env.OWNER }}/kbot\""       helm/kbot/values.yaml
+          yq -i ".tag = \"${{ steps.vars.outputs.tag }}\""              helm/kbot/values.yaml
+          yq -i ".os = \"${{ env.OS }}\""                               helm/kbot/values.yaml
+          yq -i ".arch = \"${{ env.ARCH }}\""                           helm/kbot/values.yaml
+
+          # Chart appVersion
+          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""  helm/kbot/Chart.yaml
+
           git add helm/kbot/values.yaml helm/kbot/Chart.yaml
           if ! git diff --cached --quiet; then
             git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" \
-              commit -m "ci(helm): bump image to ${{ steps.vars.outputs.full_tag }} (appVersion=${{ steps.vars.outputs.base_tag }})"
+              commit -m "ci(helm): ghcr repo + tag=${{ steps.vars.outputs.tag }} os=${{ env.OS }} arch=${{ env.ARCH }} appVersion=${{ steps.vars.outputs.base_tag }}"
             git push origin HEAD:develop
           else
             echo "No chart changes."
