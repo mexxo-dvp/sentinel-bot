@@ -2,7 +2,7 @@ name: sentinel-bot CI/CD
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "main" ]
     paths-ignore:
       - 'helm/sentinel-bot/values.yaml'
       - 'helm/sentinel-bot/Chart.yaml'
