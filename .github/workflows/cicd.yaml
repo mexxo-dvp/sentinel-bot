@@ -3,6 +3,11 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+on:
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
 name: sentinel-bot CI/CD
 
 on:
