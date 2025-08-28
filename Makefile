@@ -1,9 +1,9 @@
 # =========================
-# kbot — unified Makefile
+# sentinel-bot — unified Makefile
 # =========================
 
 # ---- App/Repo ----
-APP_NAME ?= kbot
+APP_NAME ?= sentinel-bot
 OWNER ?= $(shell echo $${GITHUB_REPOSITORY_OWNER:-mexxo-dvp})
 REGISTRY ?= ghcr.io
 REPOSITORY ?= $(OWNER)/$(APP_NAME)
@@ -23,7 +23,7 @@ TAG := $(BASE_TAG)-$(GIT_SHA)
 FULL_TAG := $(TAG)-$(OS)-$(ARCH)
 
 # ---- Build flags ----
-LD_FLAGS := -X github.com/mexxo-dvp/kbot/cmd.appVersion=$(BASE_TAG)
+LD_FLAGS := -X github.com/mexxo-dvp/sentinel-bot/cmd.appVersion=$(BASE_TAG)
 
 # ---- Helm / tools ----
 HELM_DIR ?= helm/$(APP_NAME)

@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kbot.fullname" . }}
+  name: {{ include "sentinel-bot.fullname" . }}
   labels:
-    {{- include "kbot.labels" . | nindent 4 }}
+    {{- include "sentinel-bot.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "kbot.selectorLabels" . | nindent 6 }}
+      {{- include "sentinel-bot.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "kbot.selectorLabels" . | nindent 8 }}
+        {{- include "sentinel-bot.selectorLabels" . | nindent 8 }}
     spec:
       {{ with .Values.imagePullSecrets }}
       imagePullSecrets:

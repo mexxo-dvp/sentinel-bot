@@ -1,5 +1,5 @@
 # --- Keys required by autotest ---
-repository: "ghcr.io/mexxo-dvp/kbot"
+repository: "ghcr.io/mexxo-dvp/sentinel-bot"
 tag: "v1.0.3-9c4bb07"
 os: "linux"
 arch: "amd64"
@@ -7,7 +7,7 @@ TELE_TOKEN: ""
 replicaCount: 1
 # --- Main image configuration ---
 image:
-  repository: "ghcr.io/mexxo-dvp/kbot"
+  repository: "ghcr.io/mexxo-dvp/sentinel-bot"
   tag: "v1.0.3-9c4bb07"
   os: "linux"
   arch: "amd64"
@@ -29,10 +29,10 @@ tolerations: []
 affinity: {}
 # --- Telegram token (secret in ns: demo) ---
 teleToken:
-  secretName: kbot
+  secretName: sentinel-bot
   secretKey: token
-# Runs subcommand 'kbot' (Cobra)
+# Runs subcommand 'sentinel-bot' (Cobra)
 args:
-  - kbot
+  - sentinel-bot
 probes:
   enabled: false

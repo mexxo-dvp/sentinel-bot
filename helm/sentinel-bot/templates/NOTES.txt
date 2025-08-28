@@ -1,7 +1,7 @@
 Thanks for installing {{ .Chart.Name }}!
 
 To verify the deployment:
-  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "kbot.fullname" . }}
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "sentinel-bot.fullname" . }}
   kubectl -n {{ .Release.Namespace }} get pods
 
 If you need to set the image arch:
