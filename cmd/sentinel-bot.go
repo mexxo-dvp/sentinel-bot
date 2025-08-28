@@ -10,16 +10,16 @@ import (
 	"gopkg.in/telebot.v3"
 )
 
-// kbotCmd представляє команду запуску Telegram-бота
+// sentinel-botCmd представляє команду запуску Telegram-бота
 var kbotCmd = &cobra.Command{
-	Use:     "kbot",
+	Use:     "sentinel-bot",
 	Aliases: []string{"start"},
 	Short:   "Запускає Telegram бота",
 	Long: `Ця команда запускає Telegram бота з використанням бібліотеки telebot.
 Потрібно, щоб була встановлена змінна середовища TELE_TOKEN.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Виводимо версію
-		fmt.Printf("🔧 Запуск kbot версії: %s\n", appVersion)
+		fmt.Printf("🔧 Запуск sentinel-bot версії: %s\n", appVersion)
 
 		// Отримуємо токен з середовища
 		teleToken := os.Getenv("TELE_TOKEN")
@@ -53,5 +53,5 @@ var kbotCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(kbotCmd)
+	rootCmd.AddCommand(sentinel-botCmd)
 }

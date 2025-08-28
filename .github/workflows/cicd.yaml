@@ -1,11 +1,11 @@
-name: kbot CI/CD
+name: sentinel-bot CI/CD
 
 on:
   push:
     branches: [ "develop" ]
     paths-ignore:
-      - 'helm/kbot/values.yaml'
-      - 'helm/kbot/Chart.yaml'
+      - 'helm/sentinel-bot/values.yaml'
+      - 'helm/sentinel-bot/Chart.yaml'
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
 
 env:
   OWNER: ${{ github.repository_owner }}
-  IMAGE: ghcr.io/${{ github.repository_owner }}/kbot
+  IMAGE: ghcr.io/${{ github.repository_owner }}/sentinel-bot
   OS: linux
   ARCH: amd64
 
@@ -71,18 +71,18 @@ jobs:
       - name: Bump Helm values & Chart appVersion (sync image.* and top-level keys)
         run: |
           set -euo pipefail
-          yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/kbot\"" helm/kbot/values.yaml
-          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""        helm/kbot/values.yaml
-          yq -i ".image.os = \"${{ env.OS }}\""                         helm/kbot/values.yaml
-          yq -i ".image.arch = \"${{ env.ARCH }}\""                     helm/kbot/values.yaml
-          yq -i ".repository = \"ghcr.io/${{ env.OWNER }}/kbot\""       helm/kbot/values.yaml
-          yq -i ".tag = \"${{ steps.vars.outputs.tag }}\""              helm/kbot/values.yaml
-          yq -i ".os = \"${{ env.OS }}\""                               helm/kbot/values.yaml
-          yq -i ".arch = \"${{ env.ARCH }}\""                           helm/kbot/values.yaml
-          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""  helm/kbot/Chart.yaml
+          yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\"" helm/sentinel-bot/values.yaml
+          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""        helm/sentinel-bot/values.yaml
+          yq -i ".image.os = \"${{ env.OS }}\""                         helm/sentinel-bot/values.yaml
+          yq -i ".image.arch = \"${{ env.ARCH }}\""                     helm/sentinel-bot/values.yaml
+          yq -i ".repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\""       helm/sentinel-bot/values.yaml
+          yq -i ".tag = \"${{ steps.vars.outputs.tag }}\""              helm/sentinel-bot/values.yaml
+          yq -i ".os = \"${{ env.OS }}\""                               helm/sentinel-bot/values.yaml
+          yq -i ".arch = \"${{ env.ARCH }}\""                           helm/sentinel-bot/values.yaml
+          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""  helm/sentinel-bot/Chart.yaml
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add helm/kbot/values.yaml helm/kbot/Chart.yaml
+          git add helm/sentinel-bot/values.yaml helm/sentinel-bot/Chart.yaml
           if git diff --cached --quiet; then
             echo "No chart changes."
             exit 0
