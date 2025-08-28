@@ -10,48 +10,41 @@ import (
 	"gopkg.in/telebot.v3"
 )
 
-// sentinel-botCmd представляє команду запуску Telegram-бота
-var kbotCmd = &cobra.Command{
-	Use:     "sentinel-bot",
-	Aliases: []string{"start"},
+// команда запуску Telegram-бота
+var sentinelBotCmd = &cobra.Command{
+	Use:     "sentinel-bot",        // ім’я CLI-команди ок
+	Aliases: []string{"start", "bot"},
 	Short:   "Запускає Telegram бота",
-	Long: `Ця команда запускає Telegram бота з використанням бібліотеки telebot.
-Потрібно, щоб була встановлена змінна середовища TELE_TOKEN.`,
+	Long:    "Запускає Telegram бота (telebot). Потрібна змінна середовища TELE_TOKEN.",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Виводимо версію
 		fmt.Printf("🔧 Запуск sentinel-bot версії: %s\n", appVersion)
 
-		// Отримуємо токен з середовища
 		teleToken := os.Getenv("TELE_TOKEN")
 		if teleToken == "" {
-			log.Fatal("❌ Змінна середовища TELE_TOKEN не задана. Будь ласка, встановіть її перед запуском.")
+			log.Fatal("❌ TELE_TOKEN не задано")
 		}
 
-		// Налаштування бота
 		pref := telebot.Settings{
 			Token:  teleToken,
 			Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 		}
 
-		// Ініціалізація бота
 		bot, err := telebot.NewBot(pref)
 		if err != nil {
 			log.Fatalf("❌ Не вдалося створити бота: %v", err)
 		}
 
-		// Хендлер на вхідні текстові повідомлення
 		bot.Handle(telebot.OnText, func(c telebot.Context) error {
-			payload := c.Text()
-			log.Printf("📩 Отримано повідомлення: %s", payload)
-			return c.Send("Ти написав: " + payload)
+			msg := c.Text()
+			log.Printf("📩 %s", msg)
+			return c.Send("Ти написав: " + msg)
 		})
 
-		// Запускаємо бота
-		fmt.Println("✅ Бот запущено. Очікування повідомлень...")
+		fmt.Println("✅ Бот запущено. Очікування повідомлень…")
 		bot.Start()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(sentinel-botCmd)
+	rootCmd.AddCommand(sentinelBotCmd)
 }

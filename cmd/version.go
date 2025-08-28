@@ -2,20 +2,17 @@ package cmd
 
 import (
 	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
-var appVersion string
+var appVersion = "dev"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Prints the application version",
+	Short: "Показати версію",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Version:", appVersion)
+		fmt.Println(appVersion)
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(versionCmd)
-}
+func init() { rootCmd.AddCommand(versionCmd) }
