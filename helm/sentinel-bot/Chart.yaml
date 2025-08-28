@@ -3,4 +3,4 @@ name: sentinel-bot
 description: Helm chart for sentinel-bot
 type: application
 version: 0.1.2
-appVersion: "v1.0.3"
+appVersion: "v1.0.0"

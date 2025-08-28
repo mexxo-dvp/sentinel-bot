@@ -1,6 +1,6 @@
 # --- Keys required by autotest ---
 repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-tag: "v1.0.3-9c4bb07"
+tag: "v1.0.0-6f231a3"
 os: "linux"
 arch: "amd64"
 TELE_TOKEN: ""
@@ -8,7 +8,7 @@ replicaCount: 1
 # --- Main image configuration ---
 image:
   repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-  tag: "v1.0.3-9c4bb07"
+  tag: "v1.0.0-6f231a3"
   os: "linux"
   arch: "amd64"
   TELE_TOKEN: ""
