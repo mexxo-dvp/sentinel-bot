@@ -9,8 +9,6 @@ image:
   tag: "v1.0.0-e865c54"
   TELE_TOKEN: ""
   pullPolicy: IfNotPresent
-  os: linux
-  arch: amd64
 # --- Standard Helm chart fields ---
 imagePullSecrets: []
 nameOverride: ""
@@ -34,5 +32,3 @@ args:
   - sentinel-bot
 probes:
   enabled: false
-os: linux
-arch: amd64
