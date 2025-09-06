@@ -2,3 +2,7 @@ _dist/
 *.tgz
 infra/envs/
 *.bak
+_dist/
+*.tgz
+*.bak
+infra/envs/
