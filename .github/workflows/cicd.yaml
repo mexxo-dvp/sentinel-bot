@@ -3,14 +3,21 @@ name: sentinel-bot CI/CD
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*.*.*" ]
     paths-ignore:
       - 'helm/sentinel-bot/values.yaml'
       - 'helm/sentinel-bot/Chart.yaml'
+  pull_request:
+    branches: [ "*" ]
   workflow_dispatch:
 
 permissions:
   contents: write
   packages: write
+
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   OWNER: ${{ github.repository_owner }}
@@ -29,70 +36,166 @@ jobs:
 
       - name: Derive version variables
         id: vars
+        shell: bash
         run: |
+          set -euo pipefail
           sha_short="$(git rev-parse --short=7 "$GITHUB_SHA")"
-          base_tag="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)"
-          echo "sha_short=${sha_short}" >> "$GITHUB_OUTPUT"
-          echo "base_tag=${base_tag}"   >> "$GITHUB_OUTPUT"
-          echo "tag=${base_tag}-${sha_short}" >> "$GITHUB_OUTPUT"
-          echo "full_tag=${base_tag}-${sha_short}-${{ env.OS }}-${{ env.ARCH }}" >> "$GITHUB_OUTPUT"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            base_tag="${GITHUB_REF_NAME}"
+          else
+            base_tag="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)"
+          fi
+          chart_version="${base_tag#v}"
+          {
+            echo "sha_short=${sha_short}"
+            echo "base_tag=${base_tag}"
+            echo "chart_version=${chart_version}"
+            echo "tag=${base_tag}-${sha_short}"
+            echo "full_tag=${base_tag}-${sha_short}-${{ env.OS }}-${{ env.ARCH }}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Timestamp (UTC)
+        id: ts
+        shell: bash
+        run: echo "ts=$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR
+      # GHCR login with PAT (preferred) or GITHUB_TOKEN (fallback)
+      - name: Login to GHCR (PAT)
+        if: secrets.GHCR_PAT != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Login to GHCR (GITHUB_TOKEN fallback)
+        if: secrets.GHCR_PAT == ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Head push images - NOT from PR
       - name: Build & Push (linux/amd64)
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           push: true
           platforms: linux/amd64
+          context: .
+          file: ./Dockerfile
           tags: |
             ${{ env.IMAGE }}:${{ steps.vars.outputs.full_tag }}
             ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
             ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}-amd64
-            ${{ env.IMAGE }}:develop
+            ${{ env.IMAGE }}:main
+            ${{ env.IMAGE }}:main-${{ steps.ts.outputs.ts }}
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.vars.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # PR-only image tag for Preview Environments
+      - name: Build & Push (PR tag)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          platforms: linux/amd64
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.IMAGE }}:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Install yq
+        shell: bash
         run: |
           sudo curl -fsSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
-      - name: Bump Helm values & Chart appVersion (sync image.* and top-level keys)
+      - name: Bump Helm values & Chart (sync image.* and top-level keys)
+        shell: bash
         run: |
           set -euo pipefail
-          yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\"" helm/sentinel-bot/values.yaml
-          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""        helm/sentinel-bot/values.yaml
-          yq -i ".image.os = \"${{ env.OS }}\""                         helm/sentinel-bot/values.yaml
-          yq -i ".image.arch = \"${{ env.ARCH }}\""                     helm/sentinel-bot/values.yaml
-          yq -i ".repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\""       helm/sentinel-bot/values.yaml
-          yq -i ".tag = \"${{ steps.vars.outputs.tag }}\""              helm/sentinel-bot/values.yaml
-          yq -i ".os = \"${{ env.OS }}\""                               helm/sentinel-bot/values.yaml
-          yq -i ".arch = \"${{ env.ARCH }}\""                           helm/sentinel-bot/values.yaml
-          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""  helm/sentinel-bot/Chart.yaml
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add helm/sentinel-bot/values.yaml helm/sentinel-bot/Chart.yaml
-          if git diff --cached --quiet; then
-            echo "No chart changes."
+          CHART_DIR="helm/sentinel-bot"
+
+          # sync values.yaml
+          yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\""   "$CHART_DIR/values.yaml"
+          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""                  "$CHART_DIR/values.yaml"
+          yq -i ".image.os = \"${{ env.OS }}\""                                   "$CHART_DIR/values.yaml"
+          yq -i ".image.arch = \"${{ env.ARCH }}\""                               "$CHART_DIR/values.yaml"
+          yq -i ".repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\""         "$CHART_DIR/values.yaml"
+          yq -i ".tag = \"${{ steps.vars.outputs.tag }}\""                        "$CHART_DIR/values.yaml"
+          yq -i ".os = \"${{ env.OS }}\""                                         "$CHART_DIR/values.yaml"
+          yq -i ".arch = \"${{ env.ARCH }}\""                                     "$CHART_DIR/values.yaml"
+
+          # sync Chart.yaml
+          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""            "$CHART_DIR/Chart.yaml"
+          yq -i ".version = \"${{ steps.vars.outputs.chart_version }}\""          "$CHART_DIR/Chart.yaml"
+
+          # Commit only for events with GILOK; skip tags/PR
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" || "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "Skip git commit/push on ${GITHUB_EVENT_NAME} (${GITHUB_REF_TYPE})."
             exit 0
           fi
-          git commit -m "ci(helm): ghcr repo + tag=${{ steps.vars.outputs.tag }} os=${{ env.OS }} arch=${{ env.ARCH }} appVersion=${{ steps.vars.outputs.base_tag }}"
-          n=0
-          until [ $n -ge 3 ]; do
-            if git pull --rebase origin develop; then
-              break
-            fi
-            echo "Rebase failed, retry $((n+1))/3"; git rebase --abort || true; n=$((n+1)); sleep 2
-          done
-          git push origin HEAD:develop
+
+          branch="${GITHUB_REF_NAME}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet -- "$CHART_DIR/values.yaml" "$CHART_DIR/Chart.yaml"; then
+            git add "$CHART_DIR/values.yaml" "$CHART_DIR/Chart.yaml"
+            git commit -m "ci(helm): sync values & Chart (tag=${{ steps.vars.outputs.tag }}, chart=${{ steps.vars.outputs.chart_version }}, ${{ env.OS }}/${{ env.ARCH }})"
+            n=0
+            until [ $n -ge 3 ]; do
+              if git pull --rebase origin "$branch"; then
+                break
+              fi
+              echo "Rebase failed, retry $((n+1))/3"
+              git rebase --abort || true
+              n=$((n+1))
+              sleep 2
+            done
+            git push origin HEAD:"$branch" || echo "::warning::Chart bump push skipped (non-fast-forward)."
+          else
+            echo "No chart changes."
+          fi
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm registry login (PAT)
+        if: secrets.GHCR_PAT != ''
+        shell: bash
+        run: |
+          echo "${{ secrets.GHCR_PAT }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
+
+      - name: Helm registry login (fallback)
+        if: secrets.GHCR_PAT == ''
+        shell: bash
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
+
+      # We pack and push the Helm chart on release tags v*
+      - name: Package chart
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          CHART_DIR="helm/sentinel-bot"
+          mkdir -p _dist
+          helm package "$CHART_DIR" --destination ./_dist
+          ls -l _dist
+
+      - name: Push chart to OCI (GHCR)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          helm push ./_dist/sentinel-bot-${{ steps.vars.outputs.chart_version }}.tgz oci://ghcr.io/${{ env.OWNER }}/charts
