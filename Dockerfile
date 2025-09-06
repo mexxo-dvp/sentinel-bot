@@ -15,5 +15,5 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /app/sentinel-bot .
 
-# Бінарник — це Cobra CLI. Subcommand передаємо через Helm args (["sentinel-bot","sentinel-bot"])
+# The binary is Cobra CLI. Subcommand is passed via Helm args (["sentinel-bot","sentinel-bot"])
 ENTRYPOINT ["/app/sentinel-bot"]

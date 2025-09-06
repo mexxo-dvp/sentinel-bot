@@ -58,7 +58,7 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ---- ВИЗНАЧАЄМО, ЧИ Є PAT ----
+      # ---- DETERMINING WHETHER THERE IS A PAT ----
       - name: Decide GHCR auth mode
         id: auth
         shell: bash
@@ -69,7 +69,7 @@ jobs:
             echo "use_pat=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # GHCR login з PAT або fallback на GITHUB_TOKEN
+      # GHCR login with PAT or fallback to GITHUB_TOKEN
       - name: Login to GHCR (PAT)
         if: ${{ steps.auth.outputs.use_pat == 'true' }}
         uses: docker/login-action@v3
@@ -177,7 +177,7 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      # Helm login: така ж розвилка, БЕЗ secrets у if:
+      # Helm login: same fork, WITHOUT secrets at if:
       - name: Helm registry login (PAT)
         if: ${{ steps.auth.outputs.use_pat == 'true' }}
         shell: bash

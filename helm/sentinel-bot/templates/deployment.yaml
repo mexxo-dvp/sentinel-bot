@@ -19,7 +19,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 
-      {{- /* Fallback-параметри: нові кореневі -> старі image.* */ -}}
+      {{- /* Fallback-parameters: new root -> old image.* */ -}}
       {{- $repository := (default .Values.image.repository .Values.repository) -}}
       {{- $tag := (default .Values.image.tag .Values.tag) -}}
       {{- $arch := (default .Values.image.arch .Values.arch) -}}

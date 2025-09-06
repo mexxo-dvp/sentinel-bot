@@ -16,7 +16,7 @@ spec:
   values:
     image:
       repository: ghcr.io/mexxo-dvp/sentinel-bot
-      tag: main       # або інший стабільний тег; з твоїм CI main оновлюється
+      tag: main       # or another stable tag; with your CI main is updated
       pullPolicy: IfNotPresent
     teleToken:
       secretName: sentinel-bot
