@@ -64,7 +64,7 @@ jobs:
 
       # GHCR login with PAT (preferred) or GITHUB_TOKEN (fallback)
       - name: Login to GHCR (PAT)
-        if: secrets.GHCR_PAT != ''
+        if: ${{ secrets.GHCR_PAT != '' }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -72,7 +72,7 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Login to GHCR (GITHUB_TOKEN fallback)
-        if: secrets.GHCR_PAT == ''
+        if: ${{ secrets.GHCR_PAT == '' }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -103,7 +103,7 @@ jobs:
 
       # PR-only image tag for Preview Environments
       - name: Build & Push (PR tag)
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         uses: docker/build-push-action@v6
         with:
           push: true
@@ -173,20 +173,20 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Helm registry login (PAT)
-        if: secrets.GHCR_PAT != ''
+        if: ${{ secrets.GHCR_PAT != '' }}
         shell: bash
         run: |
           echo "${{ secrets.GHCR_PAT }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
       - name: Helm registry login (fallback)
-        if: secrets.GHCR_PAT == ''
+        if: ${{ secrets.GHCR_PAT == '' }}
         shell: bash
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
       # We pack and push the Helm chart on release tags v*
       - name: Package chart
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
           CHART_DIR="helm/sentinel-bot"
@@ -195,7 +195,7 @@ jobs:
           ls -l _dist
 
       - name: Push chart to OCI (GHCR)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
           helm push ./_dist/sentinel-bot-${{ steps.vars.outputs.chart_version }}.tgz oci://ghcr.io/${{ env.OWNER }}/charts
