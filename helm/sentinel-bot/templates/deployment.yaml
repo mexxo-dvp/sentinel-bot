@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "sentinel-bot.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "sentinel-bot.selectorLabels" . | nindent 6 }}
@@ -16,22 +16,15 @@ spec:
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
-
-      {{- /* Fallback-parameters: new root -> old image.* */ -}}
-      {{- $repository := (default .Values.image.repository .Values.repository) -}}
-      {{- $tag        := (default .Values.image.tag        .Values.tag) -}}
-      {{- $os         := (default .Values.image.os         .Values.os) -}}
-      {{- $arch       := (default .Values.image.arch       .Values.arch) -}}
-
       containers:
-        - name: {{ .Release.Name }}
-          image: "{{ $repository }}:{{ $tag }}{{- if $os }}-{{ $os }}{{- end }}{{- if $arch }}-{{ $arch }}{{- end }}"
-          imagePullPolicy: {{ default "IfNotPresent" .Values.image.pullPolicy }}
+        - name: {{ .Chart.Name }}
+          image: "{{ default .Values.repository .Values.image.repository }}:{{ default .Values.tag .Values.image.tag }}{{- if or .Values.image.os .Values.os }}-{{ default .Values.os .Values.image.os }}{{- end }}{{- if or .Values.image.arch .Values.arch }}-{{ default .Values.arch .Values.image.arch }}{{- end }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           {{- with .Values.args }}
           args:
-{{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
             - name: TELE_TOKEN
@@ -58,16 +51,16 @@ spec:
             periodSeconds: 20
           {{- end }}
           resources:
-{{ toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
-{{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}
       affinity:
-{{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-{{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
