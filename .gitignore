@@ -2,3 +2,7 @@ _dist/
 *.tgz
 infra/envs/
 *.bak
+
+# Terraform artifacts
+infra/**/.terraform/
+infra/**/terraform.tfstate*
