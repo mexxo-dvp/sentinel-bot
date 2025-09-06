@@ -1,14 +1,13 @@
 replicaCount: 1
+
 image:
   repository: ghcr.io/mexxo-dvp/sentinel-bot
-  tag: v1.0.0-465a9b5
+  tag: main
   pullPolicy: IfNotPresent
-  os: linux
-  arch: amd64
+
+# лишаємо порожнім за замовчуванням: у GKE задаємо через HR
+imagePullSecrets: []
+
 teleToken:
   secretName: sentinel-bot
   secretKey: token
-repository: ghcr.io/mexxo-dvp/sentinel-bot
-tag: v1.0.0-465a9b5
-os: linux
-arch: amd64
