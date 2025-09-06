@@ -1,10 +1,14 @@
 replicaCount: 1
-
 image:
   repository: ghcr.io/mexxo-dvp/sentinel-bot
-  tag: main
+  tag: v1.0.0-465a9b5
   pullPolicy: IfNotPresent
-
+  os: linux
+  arch: amd64
 teleToken:
   secretName: sentinel-bot
   secretKey: token
+repository: ghcr.io/mexxo-dvp/sentinel-bot
+tag: v1.0.0-465a9b5
+os: linux
+arch: amd64
