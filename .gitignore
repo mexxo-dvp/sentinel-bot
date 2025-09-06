@@ -1,8 +1,22 @@
 _dist/
 *.tgz
-infra/envs/
 *.bak
 
-# Terraform artifacts
-infra/**/.terraform/
-infra/**/terraform.tfstate*
+# Terraform / OpenTofu
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# kubeconfigs and local credentials
+infra/gke/.kube/
+infra/kind/.kube/
+**/*kubeconfig
+**/*.kubeconfig
+
+# локальні чернетки
+.ci-ping.md
