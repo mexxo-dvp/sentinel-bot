@@ -42,11 +42,13 @@ jobs:
             base_tag="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)"
           fi
           chart_version="${base_tag#v}"
-          echo "sha_short=${sha_short}"             >> "$GITHUB_OUTPUT"
-          echo "base_tag=${base_tag}"               >> "$GITHUB_OUTPUT"
-          echo "chart_version=${chart_version}"     >> "$GITHUB_OUTPUT"
-          echo "tag=${base_tag}-${sha_short}"       >> "$GITHUB_OUTPUT"
-          echo "full_tag=${base_tag}-${sha_short}-${{ env.OS }}-${{ env.ARCH }}" >> "$GITHUB_OUTPUT"
+          {
+            echo "sha_short=${sha_short}"
+            echo "base_tag=${base_tag}"
+            echo "chart_version=${chart_version}"
+            echo "tag=${base_tag}-${sha_short}"
+            echo "full_tag=${base_tag}-${sha_short}-${{ env.OS }}-${{ env.ARCH }}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Timestamp (UTC)
         id: ts
@@ -133,7 +135,7 @@ jobs:
           yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""            "$CHART_DIR/Chart.yaml"
           yq -i ".version = \"${{ steps.vars.outputs.chart_version }}\""          "$CHART_DIR/Chart.yaml"
 
-          # Комітимо лише для пушів у гілку; на тегах/PR — пропускаємо
+          # Комітимо лише для push у гілки (НЕ для тегів і НЕ для PR)
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" || "${GITHUB_REF_TYPE}" == "tag" ]]; then
             echo "Skip git commit/push on ${GITHUB_EVENT_NAME} (${GITHUB_REF_TYPE})."
             exit 0
