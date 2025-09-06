@@ -1,48 +1,38 @@
 # --- Keys required by autotest ---
 repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-tag: "v0.1.3-b6b43b4"
+tag: "v0.1.3-184d0e1"
 os: "linux"
 arch: "amd64"
 TELE_TOKEN: ""
 replicaCount: 1
-
 # --- Main image configuration ---
 image:
   repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-  tag: "v0.1.3-b6b43b4"
+  tag: "v0.1.3-184d0e1"
   os: "linux"
   arch: "amd64"
   TELE_TOKEN: ""
   pullPolicy: IfNotPresent
-
 # --- Standard Helm chart fields ---
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
-
 service:
   enabled: false
   type: ClusterIP
   port: 8080
-
 ingress:
   enabled: false
-
 resources: {}
-
 nodeSelector: {}
 tolerations: []
 affinity: {}
-
 # --- Telegram token (secret in ns: apps) ---
 teleToken:
   secretName: sentinel-bot
   secretKey: token
-
 # Runs subcommand 'sentinel-bot' (Cobra)
 args:
   - sentinel-bot
-
 probes:
   enabled: false
-
