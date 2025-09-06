@@ -5,6 +5,19 @@ metadata:
   namespace: apps
 spec:
   interval: 1m
+  timeout: 10m
+
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+
   chart:
     spec:
       chart: ./helm/sentinel-bot
@@ -13,13 +26,13 @@ spec:
         name: flux-system
         namespace: flux-system
       interval: 1m
+
   values:
     image:
       repository: ghcr.io/mexxo-dvp/sentinel-bot
-      tag: develop         # або інший реальний тег, що існує в GHCR
       pullPolicy: IfNotPresent
-    imagePullSecrets:      # додамо на кроці 2, якщо образ приватний
-    #  - name: ghcr-cred
+    # imagePullSecrets:
+    #   - name: ghcr-cred
     teleToken:
       secretName: sentinel-bot
       secretKey: token
