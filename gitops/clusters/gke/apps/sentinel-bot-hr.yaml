@@ -18,6 +18,7 @@ spec:
       repository: ghcr.io/mexxo-dvp/sentinel-bot
       tag: main
       pullPolicy: IfNotPresent
+      arch: ""
     imagePullSecrets:
       - name: ghcr-cred
     teleToken:
