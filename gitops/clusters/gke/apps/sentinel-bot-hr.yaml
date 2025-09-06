@@ -16,8 +16,10 @@ spec:
   values:
     image:
       repository: ghcr.io/mexxo-dvp/sentinel-bot
-      tag: main       # or another stable tag; with your CI main is updated
+      tag: main
       pullPolicy: IfNotPresent
+    imagePullSecrets:
+      - name: ghcr-cred
     teleToken:
       secretName: sentinel-bot
       secretKey: token
