@@ -14,9 +14,11 @@ image:
   arch: amd64
 
 # --- Standard Helm chart fields ---
-imagePullSecrets: []
+imagePullSecrets:
+  - name: ghcr-cred
 nameOverride: ""
 fullnameOverride: ""
+
 service:
   enabled: false
   type: ClusterIP
@@ -39,7 +41,3 @@ args:
 
 probes:
   enabled: false
-
-# (було в репо — лишаємо як є)
-os: linux
-arch: amd64
