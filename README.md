@@ -215,7 +215,7 @@ kubectl -n apps rollout status deploy/sentinel-bot
    ```bash
    git tag v0.1.4
    git push origin refs/tags/v0.1.4
-   gh release create v0.1.7 --target main --generate-notes -t "sentinel-bot v0.1.4"
+   gh release create v0.1.4 --target main --generate-notes -t "sentinel-bot v0.1.4"
    ```
 3. CI пакує і пушить чарт у GHCR.
 4. Flux з `version: 0.1.*` підтягує нову версію.

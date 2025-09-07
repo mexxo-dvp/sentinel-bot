@@ -20,7 +20,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ include "sentinel-bot.fullname" . }}
-          image: "{{ default .Values.repository .Values.image.repository }}:{{ default .Values.tag .Values.image.tag }}{{- if or .Values.image.os .Values.os }}-{{ default .Values.os .Values.image.os }}{{- end }}{{- if or .Values.image.arch .Values.arch }}-{{ default .Values.arch .Values.image.arch }}{{- end }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           {{- with .Values.args }}
           args:
