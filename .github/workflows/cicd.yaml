@@ -1,4 +1,5 @@
 name: sentinel-bot CI/CD
+run-name: ${{ github.triggering_actor }} triggered "${{ github.workflow }}" on ${{ github.ref_name }}
 
 on:
   push:
@@ -26,8 +27,18 @@ env:
   ARCH: amd64
 
 jobs:
-  build-push-deploy:
+  # ---------------- CI: Build & Push Image ----------------
+  ci:
+    name: CI (build & push image)
     runs-on: ubuntu-latest
+    outputs:
+      sha_short:     ${{ steps.vars.outputs.sha_short }}
+      base_tag:      ${{ steps.vars.outputs.base_tag }}
+      chart_version: ${{ steps.vars.outputs.chart_version }}
+      tag:           ${{ steps.vars.outputs.tag }}
+      full_tag:      ${{ steps.vars.outputs.full_tag }}
+      ts:            ${{ steps.ts.outputs.ts }}
+      use_pat:       ${{ steps.auth.outputs.use_pat }}
     steps:
       - name: Checkout (with tags history)
         uses: actions/checkout@v4
@@ -62,7 +73,6 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ---- DETERMINING WHETHER THERE IS A PAT ----
       - name: Decide GHCR auth mode
         id: auth
         shell: bash
@@ -73,7 +83,6 @@ jobs:
             echo "use_pat=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # GHCR login with PAT or fallback to GITHUB_TOKEN
       - name: Login to GHCR (PAT)
         if: ${{ steps.auth.outputs.use_pat == 'true' }}
         uses: docker/login-action@v3
@@ -110,9 +119,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # PR-only image tag for Preview Environments
       - name: Build & Push (PR tag)
-        if: ${{ github.event_name == 'pull_request' }}
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
         uses: docker/build-push-action@v6
         with:
           push: true
@@ -123,6 +131,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # ---------------- CD: Bump chart (GitOps) ----------------
+  cd:
+    name: CD (bump Helm values & chart)
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with tags history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Install yq
         shell: bash
         run: |
@@ -130,29 +149,31 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
-      - name: Bump Helm values & Chart (sync image.* and top-level keys)
+      - name: Bump Helm values & Chart
         shell: bash
+        env:
+          FULL_TAG:    ${{ needs.ci.outputs.full_tag }}
+          BASE_TAG:    ${{ needs.ci.outputs.base_tag }}
+          CHART_VER:   ${{ needs.ci.outputs.chart_version }}
+          OWNER:       ${{ env.OWNER }}
         run: |
           set -euo pipefail
           CHART_DIR="helm/sentinel-bot"
 
-          # sync values.yaml
-          yq -i ".image.repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\""   "$CHART_DIR/values.yaml"
-          yq -i ".image.tag = \"${{ steps.vars.outputs.tag }}\""                  "$CHART_DIR/values.yaml"
-          yq -i ".image.os = \"${{ env.OS }}\""                                   "$CHART_DIR/values.yaml"
-          yq -i ".image.arch = \"${{ env.ARCH }}\""                               "$CHART_DIR/values.yaml"
-          yq -i ".repository = \"ghcr.io/${{ env.OWNER }}/sentinel-bot\""         "$CHART_DIR/values.yaml"
-          yq -i ".tag = \"${{ steps.vars.outputs.tag }}\""                        "$CHART_DIR/values.yaml"
-          yq -i ".os = \"${{ env.OS }}\""                                         "$CHART_DIR/values.yaml"
-          yq -i ".arch = \"${{ env.ARCH }}\""                                     "$CHART_DIR/values.yaml"
+          # values.yaml (repo:tag only; повний тег з OS/ARCH)
+          yq -i ".image.repository = \"ghcr.io/${OWNER}/sentinel-bot\"" "$CHART_DIR/values.yaml"
+          yq -i ".image.tag = \"${FULL_TAG}\""                           "$CHART_DIR/values.yaml"
+          # (informative fields — the template does not use them)
+          yq -i ".repository = \"ghcr.io/${OWNER}/sentinel-bot\""        "$CHART_DIR/values.yaml"
+          yq -i ".tag = \"${FULL_TAG}\""                                 "$CHART_DIR/values.yaml"
 
-          # sync Chart.yaml
-          yq -i ".appVersion = \"${{ steps.vars.outputs.base_tag }}\""            "$CHART_DIR/Chart.yaml"
-          yq -i ".version = \"${{ steps.vars.outputs.chart_version }}\""          "$CHART_DIR/Chart.yaml"
+          # Chart.yaml
+          yq -i ".appVersion = \"${BASE_TAG}\"" "$CHART_DIR/Chart.yaml"
+          yq -i ".version = \"${CHART_VER}\""   "$CHART_DIR/Chart.yaml"
 
-          # Комітимо лише для push у гілки (НЕ для тегів і НЕ для PR)
+          # Commit only on push to branch (not PR, not tag)
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" || "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            echo "Skip git commit/push on ${GITHUB_EVENT_NAME} (${GITHUB_REF_TYPE})."
+            echo "Skip commit on ${GITHUB_EVENT_NAME} (${GITHUB_REF_TYPE})."
             exit 0
           fi
 
@@ -162,41 +183,41 @@ jobs:
 
           if ! git diff --quiet -- "$CHART_DIR/values.yaml" "$CHART_DIR/Chart.yaml"; then
             git add "$CHART_DIR/values.yaml" "$CHART_DIR/Chart.yaml"
-            git commit -m "ci(helm): sync values & Chart (tag=${{ steps.vars.outputs.tag }}, chart=${{ steps.vars.outputs.chart_version }}, ${{ env.OS }}/${{ env.ARCH }})"
-            n=0
-            until [ $n -ge 3 ]; do
-              if git pull --rebase origin "$branch"; then
-                break
-              fi
-              echo "Rebase failed, retry $((n+1))/3"
-              git rebase --abort || true
-              n=$((n+1))
-              sleep 2
-            done
-            git push origin HEAD:"$branch" || echo "::warning::Chart bump push skipped (non-fast-forward)."
+            git commit -m "ci(cd): bump values.image.tag=${FULL_TAG}, chart=${CHART_VER}"
+            git pull --rebase origin "$branch" || (git rebase --abort || true)
+            git push origin HEAD:"$branch" || echo "::warning::Chart bump push skipped (non-ff)."
           else
             echo "No chart changes."
           fi
 
+  # ------------- Release lane: package & push chart (tags) -------------
+  release:
+    name: Release (OCI chart on tags)
+    needs: [ci, cd]
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (with tags history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      # Helm login: same fork, WITHOUT secrets at if:
       - name: Helm registry login (PAT)
-        if: ${{ steps.auth.outputs.use_pat == 'true' }}
+        if: ${{ needs.ci.outputs.use_pat == 'true' }}
         shell: bash
         run: |
           echo "${{ secrets.GHCR_PAT }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
       - name: Helm registry login (fallback)
-        if: ${{ steps.auth.outputs.use_pat != 'true' }}
+        if: ${{ needs.ci.outputs.use_pat != 'true' }}
         shell: bash
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
-      # Pack & push Helm chart only on release tags v*
       - name: Package chart
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
           CHART_DIR="helm/sentinel-bot"
@@ -205,7 +226,8 @@ jobs:
           ls -l _dist
 
       - name: Push chart to OCI (GHCR)
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         shell: bash
         run: |
-          helm push ./_dist/sentinel-bot-${{ steps.vars.outputs.chart_version }}.tgz oci://ghcr.io/${{ env.OWNER }}/charts
+          CHART_DIR="helm/sentinel-bot"
+          ver="$(yq -r '.version' ${CHART_DIR}/Chart.yaml)"
+          helm push ./_dist/sentinel-bot-${ver}.tgz oci://ghcr.io/${{ env.OWNER }}/charts
