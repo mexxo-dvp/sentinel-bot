@@ -2,8 +2,9 @@ _dist/
 *.tgz
 *.bak
 
-# Terraform / OpenTofu
-**/.terraform/
+# Terraform
+.terraform/
+.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 crash.log
@@ -11,13 +12,16 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+.terraform.tfvars
 
 # kubeconfigs and local credentials
+.kube/
 infra/gke/.kube/
 infra/kind/.kube/
 **/*kubeconfig
 **/*.kubeconfig
 
-# локальні чернетки
+# local
 .ci-ping.mdinfra/gke/.kube/
 infra/kind/.kube/
+infra/flux-bootstrap/*.tfvars
