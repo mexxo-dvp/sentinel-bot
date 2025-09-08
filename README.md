@@ -27,47 +27,21 @@
 
 ```text
 .
-├── .github
-│   └── workflows
-│       └── cicd.yaml
-├── .gitignore
 ├── Dockerfile
 ├── LICENSE
 ├── Makefile
 ├── README.md
 ├── RELEASE.md
+├── _dist
+│   └── sentinel-bot-0.1.2.tgz
 ├── cmd
 │   ├── root.go
 │   ├── sentinel-bot.go
 │   └── version.go
-├── gitops
-│   └── clusters
-│       ├── gke
-│       │   ├── apps
-│       │   │   ├── kustomization.yaml
-│       │   │   ├── namespace.yaml
-│       │   │   └── sentinel-bot-hr.yaml
-│       │   ├── flux-system
-│       │   │   ├── gotk-components.yaml
-│       │   │   ├── gotk-sync.yaml
-│       │   │   └── kustomization.yaml
-│       │   └── kustomization.yaml
-│       └── kind
-│           ├── apps
-│           │   ├── kustomization.yaml
-│           │   ├── namespace.yaml
-│           │   └── sentinel-bot-hr.yaml
-│           ├── flux-system
-│           │   ├── gotk-components.yaml
-│           │   ├── gotk-repo-helm.yaml
-│           │   ├── gotk-sync.yaml
-│           │   └── kustomization.yaml
-│           └── kustomization.yaml
 ├── go.mod
 ├── go.sum
 ├── helm
 │   └── sentinel-bot
-│       ├── .helmignore
 │       ├── Chart.yaml
 │       ├── templates
 │       │   ├── NOTES.txt
@@ -78,11 +52,16 @@
 │       └── values.yaml
 ├── infra
 │   ├── argocd-app-sentinel.yaml
+│   ├── flux-bootstrap
+│   │   ├── README.md
+│   │   ├── main.tf
+│   │   ├── providers.tf
+│   │   ├── terraform.tfstate
+│   │   ├── terraform.tfstate.backup
+│   │   ├── terraform.tfvars
+│   │   ├── variables.tf
+│   │   └── versions.tf
 │   ├── gke
-│   │   ├── .kube
-│   │   │   ├── gke-gke-flux.kubeconfig
-│   │   │   └── gke_gcloud_auth_plugin_cache
-│   │   ├── .terraform.lock.hcl
 │   │   ├── kustomization.yaml
 │   │   ├── main.tf
 │   │   ├── outputs.tf
@@ -92,7 +71,6 @@
 │   │   ├── variables.tf
 │   │   └── versions.tf
 │   └── kind
-│       ├── .terraform.lock.hcl
 │       ├── kind-cluster-config
 │       ├── main.tf
 │       ├── outputs.tf
