@@ -1,0 +1,15 @@
+title = "sentinel-bot gitleaks rules (isolated)"
+
+[[rules]]
+id = "telegram-bot-token"
+description = "Telegram Bot Token"
+# example: 1234567890:AAHj1wq-1L2m3n4o5p6q7r8s9t0u1v2w3x
+regex = '''(?i)\b\d{9,10}:[A-Za-z0-9_-]{35}\b'''
+tags = ["token", "telegram", "secret"]
+entropy = 0.0
+
+[allowlist]
+files = []
+commits = []
+regexTarget = "match"
+regexes = []
