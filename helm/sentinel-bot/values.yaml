@@ -1,39 +1,57 @@
 # --- Keys required by autotest ---
 repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-tag: "v0.1.7-9c08820-linux-amd64"
-TELE_TOKEN: ""
+tag: "v0.1.8"           # or a fixed immutable tag with SHA (recommended for GitOps)
+TELE_TOKEN: ""          # we don't use it; the secret is taken from GitOps/SOPS
 replicaCount: 1
+
 # --- Main image configuration ---
 image:
   repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-  tag: "v0.1.7-9c08820-linux-amd64"
-  TELE_TOKEN: ""
+  tag: "v0.1.8"
   pullPolicy: IfNotPresent
   os: linux
   arch: amd64
+
 # --- Standard Helm chart fields ---
 imagePullSecrets:
   - name: ghcr-cred
+
 nameOverride: ""
 fullnameOverride: ""
+
 service:
-  enabled: false
+  enabled: false        # will disable Service
   type: ClusterIP
   port: 8080
+
 ingress:
   enabled: false
+
 resources: {}
+
 nodeSelector: {}
 tolerations: []
 affinity: {}
-# --- Telegram token (secret in ns: apps) ---
+
+# --- Telegram token (taken from the SOPS secret in GitOps) ---
 teleToken:
   secretName: sentinel-bot
   secretKey: token
+
 # Runs subcommand 'sentinel-bot' (Cobra)
 args:
   - sentinel-bot
+
 probes:
   enabled: false
+
+# Additional env (will now be picked up by the Deployment template)
+env:
+  - name: APP_ENV
+    value: "dev"
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: "otel-collector-collector.observability.svc:4317"
+
+# For compatibility with autotests
 os: linux
 arch: amd64
