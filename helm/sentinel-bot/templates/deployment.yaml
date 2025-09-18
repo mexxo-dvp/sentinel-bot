@@ -32,21 +32,21 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.teleToken.secretName }}
                   key: {{ .Values.teleToken.secretKey }}
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: "{{ .value }}"
+            {{- end }}
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
           {{- if .Values.probes.enabled }}
           readinessProbe:
-            httpGet:
-              path: /
-              port: http
+            httpGet: { path: /, port: http }
             initialDelaySeconds: 3
             periodSeconds: 10
           livenessProbe:
-            httpGet:
-              path: /
-              port: http
+            httpGet: { path: /, port: http }
             initialDelaySeconds: 10
             periodSeconds: 20
           {{- end }}

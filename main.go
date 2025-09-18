@@ -5,6 +5,4 @@ package main
 
 import "github.com/mexxo-dvp/sentinel-bot/cmd"
 
-func main() {
-	cmd.Execute()
-}
+func main() { cmd.Execute() }

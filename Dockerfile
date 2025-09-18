@@ -10,10 +10,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o sentinel-bot main.go
 
 # ---- runtime ----
-FROM alpine:latest
+FROM gcr.io/distroless/static:nonroot
 WORKDIR /app
-RUN apk add --no-cache ca-certificates
 COPY --from=builder /app/sentinel-bot .
+ENV OTEL_EXPORTER_OTLP_ENDPOINT="otel-collector:4317" \
+    APP_ENV="dev"
+EXPOSE 8080
+USER 65532:65532
 
-# The binary is Cobra CLI. Subcommand is passed via Helm args (["sentinel-bot","sentinel-bot"])
 ENTRYPOINT ["/app/sentinel-bot"]

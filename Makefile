@@ -100,7 +100,7 @@ windows:
 # Local test build (no push)
 image-local:
 	docker build \
-		--build-arg VERSION=$(BASE_TAG) \
+		--build-arg APP_VERSION=$(BASE_TAG) \
 		-t $(IMAGE):local \
 		.
 
@@ -108,7 +108,7 @@ image-local:
 image:
 	docker buildx build \
 		--platform $(OS)/$(ARCH) \
-		--build-arg VERSION=$(BASE_TAG) \
+		--build-arg APP_VERSION=$(BASE_TAG) \
 		--tag $(IMAGE):$(FULL_TAG) \
 		--tag $(IMAGE):$(TAG) \
 		--tag $(IMAGE):develop \
