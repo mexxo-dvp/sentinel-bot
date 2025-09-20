@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -27,17 +26,20 @@ type Providers struct {
 }
 
 func Init(ctx context.Context, serviceName, serviceVersion, environment string) (*Providers, func(context.Context) error, error) {
-	// OTel endpoint (OTLP/gRPC) — колектор
+	// OTLP/gRPC endpoint колектора
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
-		endpoint = "otel-collector:4317" // k8s default (ClusterIP)
+		endpoint = "otel-collector:4317"
 	}
 
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
-			semconv.ServiceName(serviceName),
-			semconv.ServiceVersion(serviceVersion),
-			semconv.DeploymentEnvironment(environment),
+			attribute.String("service.name", serviceName),
+			attribute.String("service.version", serviceVersion),
+			attribute.String("deployment.environment", environment),
+			// корисні метадані SDK:
+			attribute.String("telemetry.sdk.name", "opentelemetry"),
+			attribute.String("telemetry.sdk.language", "go"),
 		),
 	)
 	if err != nil {
@@ -72,13 +74,13 @@ func Init(ctx context.Context, serviceName, serviceVersion, environment string) 
 	}
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp,
-			sdkmetric.WithInterval(10*time.Second), // dev-friendly
+			sdkmetric.WithInterval(10*time.Second),
 		)),
 		sdkmetric.WithResource(res),
 	)
 	otel.SetMeterProvider(mp)
 
-	// W3C tracecontext+baggage for any HTTP/RPC
+	// W3C TraceContext + baggage
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	p := &Providers{
@@ -98,9 +100,10 @@ func Init(ctx context.Context, serviceName, serviceVersion, environment string) 
 	return p, shutdown, nil
 }
 
-// Common attributes helper
+// Common attributes helper (якщо потрібно додатково)
 func CommonAttrs() []attribute.KeyValue {
 	return []attribute.KeyValue{
-		semconv.TelemetrySDKName("opentelemetry"),
+		attribute.String("telemetry.sdk.name", "opentelemetry"),
+		attribute.String("telemetry.sdk.language", "go"),
 	}
 }

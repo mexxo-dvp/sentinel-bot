@@ -3,122 +3,139 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
+	"strconv"
 	"time"
 
-	"github.com/hirokisan/zerodriver"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"github.com/mexxo-dvp/sentinel-bot/pkg/logging"
+	"gopkg.in/telebot.v3"
+
 	"github.com/mexxo-dvp/sentinel-bot/pkg/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"gopkg.in/telebot.v3"
 )
 
-var (
-	httpAddr string
-)
-
-func init() {
-	rootCmd.AddCommand(sentinelBotCmd)
-	addBotFlags(sentinelBotCmd.Flags())
-}
-
-func addBotFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&httpAddr, "http-addr", ":8080", "HTTP address for health")
-}
-
-// command to launch Telegram bot
+// the command that launches the Telegram bot
 var sentinelBotCmd = &cobra.Command{
 	Use:     "sentinel-bot",
 	Aliases: []string{"start", "bot"},
-	Short:   "Запускає Telegram бота",
-	Long:    "Запускає Telegram бота (telebot). Потрібна змінна середовища TELE_TOKEN.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Printf("🔧 Запуск sentinel-bot версії: %s\n", appVersion)
+	Short:   "Launches Telegram bot",
+	Long:    "Launches Telegram bot (telebot). Requires TELE_TOKEN environment variable.",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("🔧 Running sentinel-bot version: %s\n", appVersion)
 
-		// --- init logging
-		logging.Init()
+		// --- JSON logging (zerolog) ---
+		zerolog.TimeFieldFormat = time.RFC3339Nano
+		level := zerolog.InfoLevel
+		if v := os.Getenv("LOG_LEVEL"); v != "" {
+			if l, err := zerolog.ParseLevel(v); err == nil {
+				level = l
+			}
+		}
+		zerolog.SetGlobalLevel(level)
+		log.Logger = log.With().
+			Str("service", "sentinel-bot").
+			Str("version", appVersion).
+			Str("env", getenvDefault("APP_ENV", "dev")).
+			Logger()
 
-		// --- init telemetry
+		// --- OpenTelemetry (global providers) ---
 		ctx := context.Background()
-		env := getenv("APP_ENV", "dev")
-		otelProviders, shutdown, err := telemetry.Init(ctx, "sentinel-bot", appVersion, env)
-		logging.FatalIf(err, "init otel")
-
+		_, shutdown, err := telemetry.Init(ctx,
+			"sentinel-bot",
+			appVersion,
+			getenvDefault("APP_ENV", "dev"),
+		)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to init telemetry")
+		}
 		defer func() {
-			_ = shutdown(context.Background())
+			c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := shutdown(c); err != nil {
+				log.Error().Err(err).Msg("telemetry shutdown error")
+			}
 		}()
 
-		// metric: inbound text messages counter (with instances tied to an active spawn)
-		counter, err := otelProviders.Meter.Int64Counter("sentinelbot_messages_total",
-			metric.WithDescription("Total number of inbound text messages"),
-			metric.WithUnit("{message}"),
-		)
-		logging.FatalIf(err, "create metric")
-
+		// --- Telegram token ---
 		teleToken := os.Getenv("TELE_TOKEN")
 		if teleToken == "" {
-			return fmt.Errorf("TELE_TOKEN не задано")
+			log.Fatal().Msg("TELE_TOKEN is not set")
+		}
+
+		timeoutSec := 10
+		if v := os.Getenv("TELE_TIMEOUT_SEC"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 {
+				timeoutSec = n
+			}
 		}
 
 		pref := telebot.Settings{
 			Token:  teleToken,
-			Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
+			Poller: &telebot.LongPoller{Timeout: time.Duration(timeoutSec) * time.Second},
 		}
 
 		bot, err := telebot.NewBot(pref)
 		if err != nil {
-			return fmt.Errorf("bot creation failed: %w", err)
+			log.Fatal().Err(err).Msg("failed to create bot")
 		}
 
-		// --- health HTTP
-		go func() {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				_, _ = w.Write([]byte("ok"))
-			})
-			_ = http.ListenAndServe(httpAddr, mux)
-		}()
-
-		tr := otel.Tracer("sentinel-bot/telegram")
-
 		bot.Handle(telebot.OnText, func(c telebot.Context) error {
-			// create a span for an event from Telegram (SpanKindConsumer)
-			ctx, span := tr.Start(c.Context(), "telegram.on_text",
-				trace.WithSpanKind(trace.SpanKindConsumer))
+			msg := c.Text()
+
+			// --- We start our own span on message processing ---
+			ctxSpan, span := otel.Tracer("sentinel-bot").Start(context.Background(), "incoming_message")
 			defer span.End()
 
-			msg := c.Text()
-			user := c.Sender()
-
-			// log in JSON with trace_id/span_id
-			logging.InfoCtx(ctx, "inbound message",
-				zerodriver.String("payload", msg),
-				zerodriver.String("user", fmt.Sprintf("%s(%d)", user.Username, user.ID)),
-				zerodriver.String("severity", "INFO"),
+			// attributes for traces
+			user := safeUser(c)
+			chatID := fmt.Sprintf("%d", c.Chat().ID)
+			span.SetAttributes(
+				attribute.String("messaging.system", "telegram"),
+				attribute.String("messaging.user", user),
+				attribute.String("messaging.chat_id", chatID),
 			)
 
-			// increment the metric with the instance (trace exemplar)
-			counter.Add(ctx, 1,
-				attribute.String("message_kind", "text"),
-			)
+			// trace_id for logs
+			traceID := trace.SpanContextFromContext(ctxSpan).TraceID().String()
+
+			log.Info().
+				Str("event", "incoming_message").
+				Str("from_user", user).
+				Str("chat_id", chatID).
+				Str("text", msg).
+				Str("trace_id", traceID).
+				Msg("Message received")
 
 			return c.Send("You wrote: " + msg)
 		})
 
-		fmt.Println("✅ Bot is running. Waiting for messages...")
+		log.Info().Msg("✅ Bot is running. Waiting for messages...")
 		bot.Start()
-		return nil
 	},
 }
 
-func getenv(k, def string) string {
-	if v := os.Getenv(k); v != "" {
+func init() {
+	rootCmd.AddCommand(sentinelBotCmd)
+}
+
+func getenvDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
 		return v
 	}
 	return def
+}
+
+func safeUser(c telebot.Context) string {
+	if c.Sender() == nil {
+		return "unknown"
+	}
+	u := c.Sender()
+	if u.Username != "" {
+		return u.Username
+	}
+	return fmt.Sprintf("%s %s (%d)", u.FirstName, u.LastName, u.ID)
 }
