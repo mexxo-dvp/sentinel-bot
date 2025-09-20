@@ -1,12 +1,12 @@
 # --- Keys required by autotest ---
 repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-tag: "v0.1.8-a3988be-linux-amd64" # or a fixed immutable tag with SHA (recommended for GitOps)
+tag: "v0.1.8-75192b4-linux-amd64" # or a fixed immutable tag with SHA (recommended for GitOps)
 TELE_TOKEN: "" # we don't use it; the secret is taken from GitOps/SOPS
 replicaCount: 1
 # --- Main image configuration ---
 image:
   repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-  tag: "v0.1.8-a3988be-linux-amd64"
+  tag: "v0.1.8-75192b4-linux-amd64"
   pullPolicy: IfNotPresent
   os: linux
   arch: amd64
