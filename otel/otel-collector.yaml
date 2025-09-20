@@ -1,8 +1,8 @@
 receivers:
   otlp:
     protocols:
-      grpc:
-      http:
+      grpc: {}
+      http: {}
 
 processors:
   batch: {}
@@ -18,8 +18,7 @@ exporters:
       attributes:
         - "service.name"
         - "log.iostream"
-        - "severity"
-    # we convert some of the attributes into labels
+        - "severity_text"     # important: use severity_text instead of severity
     resource_to_telemetry_conversion:
       enabled: true
 
@@ -28,7 +27,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging] # for demo (tracy in the collector's stdout)
+      exporters: [logging]
     metrics:
       receivers: [otlp]
       processors: [batch]

@@ -8,7 +8,7 @@ services:
       - ./otel-collector.yaml:/etc/otel/config.yaml:ro
     ports:
       - "4317:4317"   # OTLP/gRPC
-      - "4318:4318"   # OTLP/HTTP
+      - "3030:3030"   # OTLP/HTTP (3030 optional)
       - "8889:8889"   # Prometheus scrape
     depends_on: [loki]
 
@@ -17,6 +17,7 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --enable-feature=exemplar-storage
+      - --web.enable-remote-write-receiver   # !
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
@@ -37,6 +38,9 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
       GF_AUTH_ANONYMOUS_ENABLED: "false"
+      # disable usage telemetry (mirrored to Helm)
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
     volumes:
       - ./provisioning:/etc/grafana/provisioning
     ports:
@@ -46,9 +50,10 @@ services:
   fluentbit:
     image: fluent/fluent-bit:2.2
     volumes:
-      - /var/log:/var/log:ro       # local logs docker (linux)
+      - /var/log:/var/log:ro
       - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - ./parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - ./script.lua:/fluent-bit/etc/script.lua:ro   # for Lua filter
     depends_on: [otel-collector]
 
   sentinel-bot:
