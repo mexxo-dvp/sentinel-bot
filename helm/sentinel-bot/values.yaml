@@ -1,24 +1,22 @@
 # --- Keys required by autotest ---
 repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-tag: "v0.1.8-39705c1-linux-amd64"
+tag: "v0.1.8-6630994-linux-amd64"
 # TELE_TOKEN: ""              # REMOVED: we take secrets ONLY from SOPS (GitOps)
 replicaCount: 1
-
 # --- Main image configuration ---
 image:
   repository: "ghcr.io/mexxo-dvp/sentinel-bot"
-  tag: "v0.1.8-39705c1-linux-amd64"
+  tag: "v0.1.8-6630994-linux-amd64"
   pullPolicy: IfNotPresent
   os: linux
   arch: amd64
-
 # --- Standard Helm chart fields ---
 imagePullSecrets:
   - name: ghcr-cred
 nameOverride: ""
 fullnameOverride: ""
 service:
-  enabled: false              # leave without ClusterIP (bot is not an HTTP service)
+  enabled: false # leave without ClusterIP (bot is not an HTTP service)
   type: ClusterIP
   port: 8080
 ingress:
@@ -27,28 +25,23 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
-
 # --- Telegram token (taken from the SOPS secret in GitOps) ---
 teleToken:
   secretName: sentinel-bot
   secretKey: token
-
 # Runs subcommand 'sentinel-bot' (Cobra)
 # args:
 #   - sentinel-bot            # REMOVED: Dockerfile ENTRYPOINT already contains "sentinel-bot"
-
 probes:
   enabled: false
-
 # Additional env (picked up by the Deployment template)
 env:
   - name: APP_ENV
     value: "dev"
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: "otel-collector-collector.observability.svc:4317"
-  - name: OTEL_SERVICE_NAME   # stabilizes service.name in traces/metrics/logs
+  - name: OTEL_SERVICE_NAME # stabilizes service.name in traces/metrics/logs
     value: "sentinel-bot"
-
 # For compatibility with autotests
 os: linux
 arch: amd64
