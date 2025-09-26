@@ -3,7 +3,7 @@
 
 # EN
 
-# sentinel-bot — Release v0.1.9
+# sentinel-bot — Release v0.2.0
 
 Short and to the point: a stable release with clean GitOps deployment via Flux, full integration with OTel/Loki/Tempo/GMP, and minimal runtime overhead.
 
@@ -12,7 +12,7 @@ Short and to the point: a stable release with clean GitOps deployment via Flux, 
 * **GitOps/Flux**: HelmRelease for `sentinel-bot`, wired via `clusters/gke/apps/...`. The SOPS-encrypted secret is picked up by Flux.
 * **Namespace**: the app now runs in its own namespace `sentinel-bot` (no dependency on `apps`).
 * **Image**: distroless, multi‑arch build; `.dockerignore` keeps dev artifacts out of the image.
-* **Helm Chart**: published to OCI as version `0.1.9`; image values and env vars are passed via HelmRelease.
+* **Helm Chart**: published to OCI as version `0.2.0`; image values and env vars are passed via HelmRelease.
 * **Environment**: added `OTEL_SERVICE_NAME=sentinel-bot`, `APP_ENV=dev`, and `OTEL_EXPORTER_OTLP_ENDPOINT` → proper binding to the OTel Operator.
 * **Logs**: JSON (zerolog, UTC). Fluent Bit collects cluster‑wide and ships to **Loki**.
 
@@ -45,8 +45,8 @@ Short and to the point: a stable release with clean GitOps deployment via Flux, 
 
 ## How to deploy
 
-1. Publish **image + chart** to GHCR (tags `0.1.9`).
-2. Commit to GitOps repo with the namespace manifests for `sentinel-bot` and HelmRelease `0.1.9`.
+1. Publish **image + chart** to GHCR (tags `0.2.0`).
+2. Commit to GitOps repo with the namespace manifests for `sentinel-bot` and HelmRelease `0.2.0`.
 3. Run `flux reconcile` (source + kustomization).
 4. Verify the Pod in `sentinel-bot` and the HelmRelease status.
 
@@ -72,7 +72,7 @@ Short and to the point: a stable release with clean GitOps deployment via Flux, 
 <a id="ua"></a>
 [EN](#en) | [UA](#ua)
 
-# sentinel-bot — Release v0.1.9
+# sentinel-bot — Release v0.2.00
 
 Коротко і по суті: стабільний реліз із чистим GitOps-деплоєм через Flux, повною інтеграцією Otel/Loki/Tempo/GMP, і мінімальним runtime‑овергендом.
 
@@ -81,7 +81,7 @@ Short and to the point: a stable release with clean GitOps deployment via Flux, 
 * **GitOps/Flux**: HelmRelease для `sentinel-bot`, підключений шлях `clusters/gke/apps/...`. SOPS‑секрет підхоплюється Flux.
 * **Namespace**: застосунок перенесено в окремий НС `sentinel-bot` (без залежності від `apps`).
 * **Образ**: дистролес, multi‑arch build, `.dockerignore` → локальні dev‑артефакти не потрапляють у образ.
-* **Helm Chart**: опубліковано в OCI з версією `0.1.9`; значення для образу та env‑змінні прокидано через HelmRelease.
+* **Helm Chart**: опубліковано в OCI з версією `0.2.0`; значення для образу та env‑змінні прокидано через HelmRelease.
 * **Оточення**: додано `OTEL_SERVICE_NAME=sentinel-bot`, `APP_ENV=dev`, `OTEL_EXPORTER_OTLP_ENDPOINT` → правильна прив’язка до Otel Operator.
 * **Логи**: JSON (zerolog, UTC). Fluent Bit збирає кластер‑вайд і шипить у **Loki**.
 
@@ -96,7 +96,7 @@ Short and to the point: a stable release with clean GitOps deployment via Flux, 
 
 ### Інфраструктура / GitOps
 
-* **HelmRelease**: `clusters/gke/apps/sentinel-bot/helmrelease.yaml` → версія чарту/образу `0.1.9`, мапа секрету `sentinel-bot/token → TELE_TOKEN`, env для Otel.
+* **HelmRelease**: `clusters/gke/apps/sentinel-bot/helmrelease.yaml` → версія чарту/образу `0.2.0`, мапа секрету `sentinel-bot/token → TELE_TOKEN`, env для Otel.
 * **Kustomize**: доданий керуючий ресурс `apps.yaml` у Flux; `apps/` вказує на підпапку `sentinel-bot/`.
 * **Namespace switch**: створено `sentinel-bot` НС, перенесено SOPS‑секрет, оновлено посилання в HelmRelease. `apps` можна видалити після prune.
 * **Otel Collector**: додано **Prometheus exporter** на `:8888`; GMP знімає `/metrics` (PodMonitoring активний).
@@ -114,8 +114,8 @@ Short and to the point: a stable release with clean GitOps deployment via Flux, 
 
 ## Як задеплоїти
 
-1. **Образ + чарт** у GHCR (теги `0.1.9`).
-2. **Коміт у GitOps** із файлами для `sentinel-bot` НС та HelmRelease `0.1.9`.
+1. **Образ + чарт** у GHCR (теги `0.2.0`).
+2. **Коміт у GitOps** із файлами для `sentinel-bot` НС та HelmRelease `0.2.0`.
 3. `flux reconcile` (source + kustomization).
 4. Перевірити pod у `sentinel-bot` та статус HelmRelease.
 
