@@ -13,7 +13,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /app
 COPY --from=builder /app/sentinel-bot .
-ENV OTEL_EXPORTER_OTLP_ENDPOINT="otel-collector-collector.observability.svc:4317"  # CHANGED: Cluster OTLP endpoint by default
+ENV OTEL_EXPORTER_OTLP_ENDPOINT="otel-collector-collector.observability.svc:4317"
 ENV APP_ENV="dev"
 USER 65532:65532
 
