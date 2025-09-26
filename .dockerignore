@@ -1,0 +1,46 @@
+# ---- LOCAL DEV STACK  ----
+docker-compose.yaml
+docker-compose*.yml
+otel-collector.yaml
+prometheus.yml
+loki-config.yaml
+parsers.conf
+script.lua
+provisioning/
+dev/
+tools/
+otel/
+
+# ---- K8s / GitOps artifacts (not needed inside the image)  ----
+k8s/
+manifests/
+helm/
+charts/
+*.sops.yaml
+*.enc.yaml
+
+# ---- VCS / CI / Docs  ----
+.git/
+.github/
+.gitlab/
+.vscode/
+.idea/
+*.md
+docs/
+design/
+*.drawio
+*.png
+*.jpg
+*.svg
+
+# ---- Go / build trash ----
+bin/
+dist/
+build/
+coverage/
+*.out
+
+# ---- Node/Python junk, if there is any in the project ----
+node_modules/
+venv/
+__pycache__/

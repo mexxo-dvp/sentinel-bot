@@ -26,10 +26,10 @@ type Providers struct {
 }
 
 func Init(ctx context.Context, serviceName, serviceVersion, environment string) (*Providers, func(context.Context) error, error) {
-	// OTLP/gRPC endpoint колектора
+	// OTLP/gRPC collector endpoint
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if endpoint == "" {
-		endpoint = "otel-collector:4317"
+		endpoint = "otel-collector-collector.observability.svc:4317"
 	}
 
 	res, err := resource.New(ctx,
@@ -37,7 +37,7 @@ func Init(ctx context.Context, serviceName, serviceVersion, environment string) 
 			attribute.String("service.name", serviceName),
 			attribute.String("service.version", serviceVersion),
 			attribute.String("deployment.environment", environment),
-			// корисні метадані SDK:
+			// Useful metadata SDK:
 			attribute.String("telemetry.sdk.name", "opentelemetry"),
 			attribute.String("telemetry.sdk.language", "go"),
 		),
@@ -100,7 +100,7 @@ func Init(ctx context.Context, serviceName, serviceVersion, environment string) 
 	return p, shutdown, nil
 }
 
-// Common attributes helper (якщо потрібно додатково)
+// Common attributes helper
 func CommonAttrs() []attribute.KeyValue {
 	return []attribute.KeyValue{
 		attribute.String("telemetry.sdk.name", "opentelemetry"),

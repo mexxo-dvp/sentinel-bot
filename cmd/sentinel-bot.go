@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"gopkg.in/telebot.v3"
 
 	"github.com/mexxo-dvp/sentinel-bot/pkg/telemetry"
+	"github.com/mexxo-dvp/sentinel-bot/pkg/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -27,24 +27,9 @@ var sentinelBotCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("🔧 Running sentinel-bot version: %s\n", appVersion)
 
-		// --- JSON logging (zerolog) ---
-		zerolog.TimeFieldFormat = time.RFC3339Nano
-		level := zerolog.InfoLevel
-		if v := os.Getenv("LOG_LEVEL"); v != "" {
-			if l, err := zerolog.ParseLevel(v); err == nil {
-				level = l
-			}
-		}
-		zerolog.SetGlobalLevel(level)
-		log.Logger = log.With().
-			Str("service", "sentinel-bot").
-			Str("version", appVersion).
-			Str("env", getenvDefault("APP_ENV", "dev")).
-			Logger()
-
 		// --- OpenTelemetry (global providers) ---
 		ctx := context.Background()
-		_, shutdown, err := telemetry.Init(ctx,
+		prov, shutdown, err := telemetry.Init(ctx, // CHANGED: зберігаємо prov для метрик
 			"sentinel-bot",
 			appVersion,
 			getenvDefault("APP_ENV", "dev"),
@@ -59,6 +44,11 @@ var sentinelBotCmd = &cobra.Command{
 				log.Error().Err(err).Msg("telemetry shutdown error")
 			}
 		}()
+
+		// --- Metrics init (safe no-op, якщо провайдер відсутній) ---
+		if err := metrics.Init(prov.Meter); err != nil { // NEW
+			log.Error().Err(err).Msg("metrics init failed") // NEW
+		}
 
 		// --- Telegram token ---
 		teleToken := os.Getenv("TELE_TOKEN")
@@ -98,6 +88,9 @@ var sentinelBotCmd = &cobra.Command{
 				attribute.String("messaging.user", user),
 				attribute.String("messaging.chat_id", chatID),
 			)
+
+			// metrics: count handled messages
+			metrics.IncMessage(ctxSpan) // NEW
 
 			// trace_id for logs
 			traceID := trace.SpanContextFromContext(ctxSpan).TraceID().String()

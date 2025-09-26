@@ -1,12 +1,13 @@
 _dist/
 *.tgz
 *.bak
+.vscode
 
 # Terraform
 .terraform/
 .terraform.lock.hcl
 *.tfstate
-*.tfstate.*
+*.tfstate
 crash.log
 override.tf
 override.tf.json
@@ -25,5 +26,3 @@ infra/kind/.kube/
 .ci-ping.mdinfra/gke/.kube/
 infra/kind/.kube/
 infra/flux-bootstrap/*.tfvars
-.vscode/
-*.code-workspace
