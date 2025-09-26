@@ -11,6 +11,8 @@ on:
   pull_request:
     branches: [ "*" ]
   workflow_dispatch:
+  release:                              # NEW: trigger and from GitHub Release
+    types: [ published ]                # NEW
 
 permissions:
   contents: write
@@ -51,8 +53,10 @@ jobs:
         run: |
           set -euo pipefail
           sha_short="$(git rev-parse --short=7 "$GITHUB_SHA")"
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            base_tag="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then              # NEW
+            base_tag="${{ github.event.release.tag_name }}"               # NEW: vX.Y.Z з релізу
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            base_tag="${GITHUB_REF_NAME}"                                 # vX.Y.Z
           else
             base_tag="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v1.0.0)"
           fi
@@ -160,19 +164,18 @@ jobs:
           set -euo pipefail
           CHART_DIR="helm/sentinel-bot"
 
-          # values.yaml (repo:tag only; повний тег з OS/ARCH)
+          # values.yaml
           yq -i ".image.repository = \"ghcr.io/${OWNER}/sentinel-bot\"" "$CHART_DIR/values.yaml"
           yq -i ".image.tag = \"${FULL_TAG}\""                           "$CHART_DIR/values.yaml"
-          # (informative fields — the template does not use them)
-          yq -i ".repository = \"ghcr.io/${OWNER}/sentinel-bot\""        "$CHART_DIR/values.yaml"
-          yq -i ".tag = \"${FULL_TAG}\""                                 "$CHART_DIR/values.yaml"
+          yq -i ".repository = \"ghcr.io/${OWNER}/sentinel-bot\""        "$CHART_DIR/values.yaml"   # info only
+          yq -i ".tag = \"${FULL_TAG}\""                                 "$CHART_DIR/values.yaml"   # info only
 
           # Chart.yaml
           yq -i ".appVersion = \"${BASE_TAG}\"" "$CHART_DIR/Chart.yaml"
           yq -i ".version = \"${CHART_VER}\""   "$CHART_DIR/Chart.yaml"
 
           # Commit only on push to branch (not PR, not tag)
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" || "${GITHUB_REF_TYPE}" == "tag" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" || "${GITHUB_REF_TYPE}" == "tag" || "${GITHUB_EVENT_NAME}" == "release" ]]; then
             echo "Skip commit on ${GITHUB_EVENT_NAME} (${GITHUB_REF_TYPE})."
             exit 0
           fi
@@ -190,11 +193,11 @@ jobs:
             echo "No chart changes."
           fi
 
-  # ------------- Release lane: package & push chart (tags) -------------
+  # ------------- Release lane: package & push chart (tags/releases) -------------
   release:
     name: Release (OCI chart on tags)
     needs: [ci, cd]
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release' }}   # CHANGED
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (with tags history)
@@ -217,6 +220,17 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
+      - name: Sync Chart.yaml to tag (safety)         # NEW: guarantee the version number from the tag
+        shell: bash
+        env:
+          BASE_TAG:  ${{ needs.ci.outputs.base_tag }}       # vX.Y.Z
+          CHART_VER: ${{ needs.ci.outputs.chart_version }}  # X.Y.Z
+        run: |
+          CHART_DIR="helm/sentinel-bot"
+          sed -i "s/^version:.*/version: ${CHART_VER}/"                "$CHART_DIR/Chart.yaml"
+          sed -i "s/^appVersion:.*/appVersion: \"${BASE_TAG}\"/"       "$CHART_DIR/Chart.yaml"
+          echo "Chart.yaml synced to ${BASE_TAG} (${CHART_VER})"
+
       - name: Package chart
         shell: bash
         run: |
@@ -227,7 +241,7 @@ jobs:
 
       - name: Push chart to OCI (GHCR)
         shell: bash
+        env:
+          CHART_VER: ${{ needs.ci.outputs.chart_version }}  # CHANGED: without yq
         run: |
-          CHART_DIR="helm/sentinel-bot"
-          ver="$(yq -r '.version' ${CHART_DIR}/Chart.yaml)"
-          helm push ./_dist/sentinel-bot-${ver}.tgz oci://ghcr.io/${{ env.OWNER }}/charts
+          helm push ./_dist/sentinel-bot-${CHART_VER}.tgz oci://ghcr.io/${{ env.OWNER }}/charts
