@@ -1,6 +1,6 @@
 module github.com/mexxo-dvp/sentinel-bot
 
-go 1.24
+go 1.24.5
 
 require (
 	github.com/rs/zerolog v1.33.0
