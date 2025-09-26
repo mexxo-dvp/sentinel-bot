@@ -23,9 +23,9 @@ func main() {
 	environment := getenvDefault("APP_ENV", os.Getenv("ENVIRONMENT"))
 
 	// Initialize the logger: basic fields + level with LOG_LEVEL
-	logging.Configure(serviceName, serviceVersion, environment) // NEW
+	logging.Configure(serviceName, serviceVersion, environment)
 
-	// Initializing OpenTelemetry (traces+metrics via OTLP)
+	// Initialize OpenTelemetry (traces+metrics via OTLP) — SINGLE place
 	prov, shutdown, err := telemetry.Init(ctx, serviceName, serviceVersion, environment)
 	if err != nil {
 		log.Printf("telemetry init failed: %v", err)
@@ -36,13 +36,13 @@ func main() {
 			}
 		}()
 
-		// Initialization of metrics; without this, IncMessage will be no-op
+		// Metrics init (IncMessage would be no-op without this)
 		if err := metrics.Init(prov.Meter); err != nil {
 			log.Printf("metrics init failed: %v", err)
 		}
 	}
 
-	
+	// Run Cobra
 	cmd.Execute()
 }
 

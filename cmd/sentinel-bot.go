@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/telebot.v3"
 
-	"github.com/mexxo-dvp/sentinel-bot/pkg/telemetry"
 	"github.com/mexxo-dvp/sentinel-bot/pkg/metrics"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -26,29 +25,6 @@ var sentinelBotCmd = &cobra.Command{
 	Long:    "Launches Telegram bot (telebot). Requires TELE_TOKEN environment variable.",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("🔧 Running sentinel-bot version: %s\n", appVersion)
-
-		// --- OpenTelemetry (global providers) ---
-		ctx := context.Background()
-		prov, shutdown, err := telemetry.Init(ctx, // CHANGED: зберігаємо prov для метрик
-			"sentinel-bot",
-			appVersion,
-			getenvDefault("APP_ENV", "dev"),
-		)
-		if err != nil {
-			log.Fatal().Err(err).Msg("failed to init telemetry")
-		}
-		defer func() {
-			c, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := shutdown(c); err != nil {
-				log.Error().Err(err).Msg("telemetry shutdown error")
-			}
-		}()
-
-		// --- Metrics init (safe no-op, якщо провайдер відсутній) ---
-		if err := metrics.Init(prov.Meter); err != nil { // NEW
-			log.Error().Err(err).Msg("metrics init failed") // NEW
-		}
 
 		// --- Telegram token ---
 		teleToken := os.Getenv("TELE_TOKEN")
@@ -76,7 +52,7 @@ var sentinelBotCmd = &cobra.Command{
 		bot.Handle(telebot.OnText, func(c telebot.Context) error {
 			msg := c.Text()
 
-			// --- We start our own span on message processing ---
+			// Start a span for message processing
 			ctxSpan, span := otel.Tracer("sentinel-bot").Start(context.Background(), "incoming_message")
 			defer span.End()
 
@@ -90,7 +66,7 @@ var sentinelBotCmd = &cobra.Command{
 			)
 
 			// metrics: count handled messages
-			metrics.IncMessage(ctxSpan) // NEW
+			metrics.IncMessage(ctxSpan)
 
 			// trace_id for logs
 			traceID := trace.SpanContextFromContext(ctxSpan).TraceID().String()

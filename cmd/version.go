@@ -9,7 +9,7 @@ var appVersion = "dev"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Показати версію",
+	Short: "Show version",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(appVersion)
 	},
