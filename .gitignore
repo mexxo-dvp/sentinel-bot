@@ -25,3 +25,5 @@ infra/kind/.kube/
 .ci-ping.mdinfra/gke/.kube/
 infra/kind/.kube/
 infra/flux-bootstrap/*.tfvars
+.vscode/
+*.code-workspace
