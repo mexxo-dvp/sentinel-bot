@@ -1,6 +1,6 @@
 # sentinel-bot
 
-a id="en"></a>
+<a id="en"></a>
 [🇬🇧 EN](#english) | [🇺🇦 UA](#українська)
 
 ---
@@ -176,7 +176,7 @@ flux get helmreleases -n sentinel-bot
 * Local dev stack (docker‑compose with OTel/Loki/Prometheus/Grafana) prepared for development only.
 
 ---
-a id="ua"></a>
+<a id="ua"></a>
 [🇬🇧 EN](#english) | [🇺🇦 UA](#українська)
 
 ### Що це?
